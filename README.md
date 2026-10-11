@@ -2,6 +2,8 @@
 
 A Chrome-first web remake of the 1982 TI-99/4A dungeon crawler *Tunnels of Doom*.
 
+**Play the latest build:** https://tpurl.github.io/tod-web/
+
 **Fidelity policy**
 
 - **Mechanics:** reproduce the original exactly (party creation, store, dungeon walking, secret doors, rooms, treasure, combat, XP, multiple floors, quests).
@@ -44,7 +46,7 @@ Title screen: Enter opens the display test. Test screen: arrows move the sprite,
 
 ## Deployment
 
-CI runs tests and the build on every push and PR. GitHub Pages deploy is opt-in: set Settings > Pages > Source to "GitHub Actions" and add the repository variable `PAGES_ENABLED=true`. Pages on a private repo requires a paid GitHub plan.
+CI runs tests and the build on every push and PR. Every push to `main` (and any manual run from the Actions tab) also deploys to GitHub Pages. Pages must be set to Settings > Pages > Source = "GitHub Actions".
 
 ## Target platform
 
@@ -52,4 +54,4 @@ Desktop Chrome (current stable). Other Chromium browsers should work; nothing is
 
 ## Status
 
-Milestone 1 (scaffold, tile engine, palette, font, input) in review. See the milestone table in `docs/DESIGN.md`.
+Milestone 1 (scaffold, tile engine, palette, font, input) complete. Next: milestone 2, party creation. See the milestone table in `docs/DESIGN.md`.
