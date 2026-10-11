@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "monster.schema.json",
+  "title": "Monster definition",
+  "type": "object",
+  "required": ["id", "name", "sprite", "hp", "attack", "defense", "damage", "xp", "depth", "behavior"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/id" },
+    "name": { "type": "string" },
+    "sprite": {
+      "type": "object",
+      "required": ["pattern", "color"],
+      "properties": { "pattern": { "type": "string" }, "color": { "$ref": "common.schema.json#/$defs/color" } }
+    },
+    "hp": { "$ref": "common.schema.json#/$defs/dice" },
+    "attack": { "type": "integer" },
+    "defense": { "type": "integer" },
+    "damage": { "$ref": "common.schema.json#/$defs/dice" },
+    "ranged": {
+      "type": "object",
+      "properties": { "damage": { "$ref": "common.schema.json#/$defs/dice" }, "range": { "type": "integer", "minimum": 1 } }
+    },
+    "move": { "type": "integer", "minimum": 0, "default": 3 },
+    "xp": { "type": "integer", "minimum": 0 },
+    "gold": { "$ref": "common.schema.json#/$defs/dice" },
+    "depth": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": { "min": { "type": "integer", "minimum": 1 }, "max": { "type": "integer", "minimum": 1 } }
+    },
+    "groupSize": { "$ref": "common.schema.json#/$defs/dice" },
+    "behavior": { "enum": ["melee", "ranged", "caster", "coward"] },
+    "fleeAtHpPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "spells": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/id" } },
+    "talk": {
+      "type": "array",
+      "description": "Weighted outcomes when the party tries to talk; empty or absent means always hostile",
+      "items": {
+        "type": "object",
+        "required": ["weight", "outcome"],
+        "properties": {
+          "weight": { "type": "integer", "minimum": 1 },
+          "outcome": { "enum": ["pass", "demand_gold", "give_hint", "attack"] },
+          "gold": { "$ref": "common.schema.json#/$defs/dice" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "specials": { "type": "array", "items": { "enum": ["poison", "sleep", "paralyze", "drain_xp", "regenerate", "steal_gold"] } }
+  }
+}

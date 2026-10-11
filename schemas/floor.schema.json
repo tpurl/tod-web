@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "floor.schema.json",
+  "title": "Generated floor",
+  "description": "Output of the generator. Saves store only floorDelta; the floor is regenerated from seed.",
+  "type": "object",
+  "required": ["depth", "seed", "width", "height", "cells", "rooms", "doors", "stairsUp", "stairsDown"],
+  "properties": {
+    "depth": { "type": "integer", "minimum": 1 },
+    "seed": { "type": "integer" },
+    "width": { "type": "integer", "minimum": 8 },
+    "height": { "type": "integer", "minimum": 8 },
+    "cells": {
+      "type": "array",
+      "description": "One string per row. '#' wall, '.' corridor, 'r' room floor",
+      "items": { "type": "string", "pattern": "^[#.r]+$" }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "x", "y", "w", "h", "contents"],
+        "properties": {
+          "id": { "type": "integer" },
+          "x": { "type": "integer" }, "y": { "type": "integer" },
+          "w": { "type": "integer", "minimum": 1 }, "h": { "type": "integer", "minimum": 1 },
+          "contents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": { "enum": ["monsters", "treasure", "fountain", "trap", "store", "quest", "stairs_up", "stairs_down"] },
+                "monsterId": { "type": "string" },
+                "count": { "type": "integer", "minimum": 1 },
+                "gold": { "type": "integer", "minimum": 0 },
+                "itemIds": { "type": "array", "items": { "type": "string" } },
+                "trapId": { "type": "string" },
+                "fountainTable": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "doors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "side", "kind"],
+        "properties": {
+          "x": { "type": "integer" }, "y": { "type": "integer" },
+          "side": { "$ref": "common.schema.json#/$defs/facing", "description": "Edge of square (x,y) the door sits on" },
+          "kind": { "enum": ["normal", "locked", "secret"] },
+          "keyItemId": { "type": "string" }
+        }
+      }
+    },
+    "stairsUp": { "$ref": "common.schema.json#/$defs/point" },
+    "stairsDown": { "anyOf": [{ "$ref": "common.schema.json#/$defs/point" }, { "type": "null" }] }
+  },
+  "$defs": {
+    "floorDelta": {
+      "type": "object",
+      "description": "Saved per-floor changes",
+      "properties": {
+        "explored": { "type": "string", "description": "Base64 bitset of explored squares" },
+        "discoveredDoors": { "type": "array", "items": { "type": "integer" }, "description": "Indices into doors[]" },
+        "openedDoors": { "type": "array", "items": { "type": "integer" } },
+        "clearedRooms": { "type": "array", "items": { "type": "integer" } },
+        "lootedRooms": { "type": "array", "items": { "type": "integer" } },
+        "usedFountains": { "type": "array", "items": { "type": "integer" } },
+        "sprungTraps": { "type": "array", "items": { "type": "integer" } }
+      }
+    }
+  }
+}

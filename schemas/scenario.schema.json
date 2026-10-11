@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenario.schema.json",
+  "title": "Scenario",
+  "type": "object",
+  "required": ["id", "title", "floors", "start", "store", "goal", "monsterIds", "itemIds"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/id" },
+    "title": { "type": "string" },
+    "intro": { "type": "string" },
+    "floors": {
+      "type": "object",
+      "required": ["count"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "width": { "type": "integer", "minimum": 8 },
+        "height": { "type": "integer", "minimum": 8 },
+        "roomsPerFloor": { "type": "integer", "minimum": 2 },
+        "secretDoorRate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "start": {
+      "type": "object",
+      "required": ["gold", "food"],
+      "properties": {
+        "gold": { "type": "integer", "minimum": 0 },
+        "food": { "type": "integer", "minimum": 0 },
+        "items": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "store": {
+      "type": "object",
+      "required": ["stock"],
+      "properties": {
+        "stock": { "type": "array", "items": { "type": "string" } },
+        "sellRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
+        "floors": { "type": "array", "items": { "type": "integer" }, "description": "Floors with a store; default [1]" }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["collect_gold", "retrieve_item", "rescue", "retrieve_and_rescue"] },
+        "goldTarget": { "type": "integer" },
+        "itemId": { "type": "string" },
+        "captiveName": { "type": "string" },
+        "targetFloor": { "type": "integer", "minimum": 1 },
+        "mustReturnToSurface": { "type": "boolean", "default": true },
+        "stepLimit": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "monsterIds": { "type": "array", "items": { "type": "string" } },
+    "itemIds": { "type": "array", "items": { "type": "string" } },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "races": { "type": "boolean", "default": false, "description": "[EXT] enable races" },
+        "foodPerSteps": { "type": "integer", "minimum": 1 },
+        "starvationDamage": { "type": "string" }
+      }
+    }
+  }
+}

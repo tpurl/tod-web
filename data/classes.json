@@ -1,0 +1,51 @@
+{
+  "_note": "Values marked calibrate:true are placeholders until measured against the original.",
+  "classes": [
+    {
+      "id": "fighter",
+      "name": "Fighter",
+      "hpDie": "1d10",
+      "canCast": false,
+      "weaponLimits": null,
+      "armorLimits": null,
+      "searchBonus": 0,
+      "soloOnly": false,
+      "calibrate": true
+    },
+    {
+      "id": "wizard",
+      "name": "Wizard",
+      "hpDie": "1d4",
+      "canCast": true,
+      "spellPointStat": "intelligence",
+      "weaponLimits": ["dagger", "staff"],
+      "armorLimits": ["robe"],
+      "searchBonus": 5,
+      "soloOnly": false,
+      "calibrate": true
+    },
+    {
+      "id": "rogue",
+      "name": "Rogue",
+      "hpDie": "1d6",
+      "canCast": false,
+      "weaponLimits": null,
+      "armorLimits": ["robe", "leather_armor"],
+      "searchBonus": 20,
+      "soloOnly": false,
+      "calibrate": true
+    },
+    {
+      "id": "hero",
+      "name": "Hero",
+      "hpDie": "1d10",
+      "canCast": true,
+      "spellPointStat": "intelligence",
+      "weaponLimits": null,
+      "armorLimits": null,
+      "searchBonus": 10,
+      "soloOnly": true,
+      "calibrate": true
+    }
+  ]
+}

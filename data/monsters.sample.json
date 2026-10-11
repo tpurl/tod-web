@@ -1,0 +1,10 @@
+{
+  "_note": "Sample content to exercise the schema. Stats are placeholders; sprites are new designs.",
+  "monsters": [
+    { "id": "giant_rat", "name": "Giant Rat", "sprite": { "pattern": "rat", "color": 14 }, "hp": "1d4", "attack": 1, "defense": 0, "damage": "1d3", "move": 4, "xp": 5, "gold": "1d1-1", "depth": { "min": 1, "max": 3 }, "groupSize": "2d3", "behavior": "melee" },
+    { "id": "goblin", "name": "Goblin", "sprite": { "pattern": "goblin", "color": 2 }, "hp": "1d6", "attack": 2, "defense": 1, "damage": "1d6", "xp": 10, "gold": "2d6", "depth": { "min": 1, "max": 4 }, "groupSize": "1d4", "behavior": "melee", "fleeAtHpPercent": 25, "talk": [ { "weight": 3, "outcome": "demand_gold", "gold": "1d10" }, { "weight": 2, "outcome": "attack" } ] },
+    { "id": "skeleton_archer", "name": "Skeleton Archer", "sprite": { "pattern": "skeleton", "color": 15 }, "hp": "2d6", "attack": 3, "defense": 2, "damage": "1d4", "ranged": { "damage": "1d6", "range": 6 }, "xp": 25, "gold": "1d10", "depth": { "min": 2, "max": 6 }, "groupSize": "1d3", "behavior": "ranged" },
+    { "id": "cave_spider", "name": "Cave Spider", "sprite": { "pattern": "spider", "color": 13 }, "hp": "3d6", "attack": 4, "defense": 2, "damage": "1d6", "xp": 40, "depth": { "min": 3, "max": 7 }, "groupSize": "1d2", "behavior": "melee", "specials": ["poison"] },
+    { "id": "hermit_mage", "name": "Hermit Mage", "sprite": { "pattern": "mage", "color": 5 }, "hp": "3d4", "attack": 2, "defense": 1, "damage": "1d4", "xp": 60, "gold": "4d10", "depth": { "min": 4, "max": 10 }, "groupSize": "1d1", "behavior": "caster", "spells": ["sleep", "bolt"], "talk": [ { "weight": 2, "outcome": "give_hint", "message": "The way down is behind the eastern wall." }, { "weight": 1, "outcome": "pass" }, { "weight": 1, "outcome": "attack" } ] }
+  ]
+}

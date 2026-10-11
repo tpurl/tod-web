@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "character.schema.json",
+  "title": "Character",
+  "type": "object",
+  "required": ["id", "name", "classId", "baseStats", "stats", "hp", "level", "xp", "inventory", "equipped"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 10 },
+    "classId": { "enum": ["fighter", "wizard", "rogue", "hero"] },
+    "raceId": { "type": ["string", "null"], "description": "[EXT] null means classic rules" },
+    "baseStats": { "$ref": "common.schema.json#/$defs/stats", "description": "As rolled, before race modifiers" },
+    "stats": { "$ref": "common.schema.json#/$defs/stats", "description": "Effective stats" },
+    "hp": {
+      "type": "object",
+      "required": ["current", "max"],
+      "properties": { "current": { "type": "integer" }, "max": { "type": "integer", "minimum": 1 } }
+    },
+    "spellPoints": {
+      "type": "object",
+      "properties": { "current": { "type": "integer", "minimum": 0 }, "max": { "type": "integer", "minimum": 0 } }
+    },
+    "level": { "type": "integer", "minimum": 1 },
+    "xp": { "type": "integer", "minimum": 0 },
+    "inventory": { "type": "array", "items": { "$ref": "#/$defs/itemInstance" } },
+    "equipped": {
+      "type": "object",
+      "properties": {
+        "weapon": { "type": ["string", "null"] },
+        "armor": { "type": ["string", "null"] },
+        "shield": { "type": ["string", "null"] },
+        "ring": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false,
+      "description": "Values are itemInstance.instanceId"
+    },
+    "status": { "type": "array", "items": { "enum": ["poisoned", "asleep", "paralyzed", "dead"] }, "uniqueItems": true }
+  },
+  "$defs": {
+    "itemInstance": {
+      "type": "object",
+      "required": ["instanceId", "itemId"],
+      "properties": {
+        "instanceId": { "type": "string" },
+        "itemId": { "$ref": "common.schema.json#/$defs/id" },
+        "identified": { "type": "boolean", "default": true },
+        "quantity": { "type": "integer", "minimum": 1, "default": 1 },
+        "charges": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

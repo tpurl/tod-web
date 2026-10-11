@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "item.schema.json",
+  "title": "Item definition",
+  "type": "object",
+  "required": ["id", "name", "kind", "price"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/id" },
+    "name": { "type": "string" },
+    "unidentifiedName": { "type": "string" },
+    "kind": { "enum": ["weapon", "armor", "shield", "potion", "scroll", "ring", "food", "ammo", "key", "quest"] },
+    "price": { "type": "integer", "minimum": 0 },
+    "sellable": { "type": "boolean", "default": true },
+    "stackable": { "type": "boolean", "default": false },
+    "classes": {
+      "type": "array",
+      "items": { "enum": ["fighter", "wizard", "rogue", "hero"] },
+      "description": "Classes allowed to equip/use; absent means all"
+    },
+    "weapon": {
+      "type": "object",
+      "required": ["damage"],
+      "properties": {
+        "damage": { "$ref": "common.schema.json#/$defs/dice" },
+        "hitBonus": { "type": "integer", "default": 0 },
+        "ranged": { "type": "boolean", "default": false },
+        "range": { "type": "integer", "minimum": 1 },
+        "ammoItemId": { "$ref": "common.schema.json#/$defs/id" },
+        "hands": { "enum": [1, 2], "default": 1 }
+      }
+    },
+    "defense": { "type": "integer", "description": "Armor and shields" },
+    "effect": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["heal", "harm", "stat", "cast_spell", "reveal_map", "reveal_secrets", "cure", "food"] },
+        "amount": { "$ref": "common.schema.json#/$defs/dice" },
+        "stat": { "enum": ["strength", "dexterity", "intelligence", "constitution"] },
+        "spellId": { "$ref": "common.schema.json#/$defs/id" },
+        "charges": { "type": "integer", "minimum": 1 },
+        "passive": { "type": "boolean", "default": false }
+      }
+    },
+    "depth": {
+      "type": "object",
+      "properties": { "min": { "type": "integer", "minimum": 1 }, "max": { "type": "integer", "minimum": 1 } }
+    },
+    "rarity": { "type": "integer", "minimum": 1, "description": "Relative weight in treasure tables" }
+  }
+}

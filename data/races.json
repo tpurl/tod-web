@@ -1,0 +1,14 @@
+{
+  "_note": "[EXT] Races are not in the original. Enabled per scenario via rules.races. Human has no modifiers, so all-human equals classic rules.",
+  "races": [
+    { "id": "human", "name": "Human", "mods": {}, "allowedClasses": ["fighter", "wizard", "rogue", "hero"], "perks": [] },
+    { "id": "dwarf", "name": "Dwarf", "mods": { "strength": 1, "constitution": 2, "dexterity": -1 }, "allowedClasses": ["fighter", "rogue", "hero"], "perks": ["trap_sense"] },
+    { "id": "elf", "name": "Elf", "mods": { "dexterity": 2, "intelligence": 1, "constitution": -1 }, "allowedClasses": ["fighter", "wizard", "rogue", "hero"], "perks": ["secret_door_sense"] },
+    { "id": "halfling", "name": "Halfling", "mods": { "dexterity": 2, "strength": -2 }, "allowedClasses": ["rogue", "hero"], "perks": ["eats_less"] }
+  ],
+  "perks": {
+    "trap_sense": "+15 to trap detection when searching",
+    "secret_door_sense": "+15 to secret door detection when searching",
+    "eats_less": "Party food consumption reduced by 10% per halfling, max 25%"
+  }
+}
