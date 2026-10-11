@@ -76,4 +76,14 @@ describe('Keyboard', () => {
     expect(t.fire('KeyR', 'r', { ctrlKey: true })).toBe(false);
     expect(kb.drain()).toEqual([]);
   });
+
+  it('accepts presses from other sources through press()', () => {
+    const t = fakeTarget();
+    const kb = new Keyboard(t as never);
+    let first = 0;
+    kb.onFirstInput(() => first++);
+    kb.press({ key: 'enter', repeat: false });
+    expect(kb.drain()).toEqual([{ key: 'enter', repeat: false }]);
+    expect(first).toBe(1);
+  });
 });

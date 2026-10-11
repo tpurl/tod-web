@@ -22,7 +22,7 @@ const CODE_MAP: Readonly<Record<string, GameKey>> = {
   Backspace: 'back',
 };
 
-const REPEATABLE: ReadonlySet<GameKey> = new Set(['up', 'down', 'left', 'right', 'back']);
+export const REPEATABLE: ReadonlySet<GameKey> = new Set(['up', 'down', 'left', 'right', 'back']);
 
 /** Maximum queued presses; older presses are dropped so held keys can't build lag. */
 export const MAX_QUEUE = 16;
@@ -78,6 +78,11 @@ export class Keyboard {
       return;
     }
     e.preventDefault();
+    this.press(press);
+  }
+
+  /** Queues a press from any source (physical keys, touch controls). */
+  press(press: KeyPress): void {
     if (!this.sawInput) {
       this.sawInput = true;
       for (const cb of this.firstInputCallbacks) cb();
