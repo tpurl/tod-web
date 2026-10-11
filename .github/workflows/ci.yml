@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Never cancel an in-progress deploy; queue the next one instead.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,15 +26,15 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run build
-      - if: github.event_name != 'pull_request' && vars.PAGES_ENABLED == 'true'
+      - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
-    # Opt-in: set Settings > Pages > Source = "GitHub Actions", then add the
-    # repository variable PAGES_ENABLED=true.
-    if: github.event_name != 'pull_request' && vars.PAGES_ENABLED == 'true'
+    # Deploys on every push to main and on manual runs; PRs only build and test.
+    # Requires Settings > Pages > Source = "GitHub Actions".
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
