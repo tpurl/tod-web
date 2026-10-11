@@ -22,7 +22,18 @@ npm test           # unit tests
 npm run build      # typecheck + production build to dist/
 ```
 
-Title screen: Enter opens the display test. Test screen: arrows move the sprite, M toggles magnify, L toggles the 4-sprites-per-line limit, B cycles the backdrop color, Esc returns.
+## Controls
+
+| Action | Keyboard | Touch |
+|---|---|---|
+| Confirm | Enter | ENTER button, or tap the game screen |
+| Move / select | Arrow keys | D-pad (hold to repeat) |
+| Back / delete | Esc or Backspace | BACK button |
+| Letters and names | Type | ABC button opens the phone keyboard |
+
+Touch controls appear automatically on phones and tablets. Add `?touch=1` to the URL to force them on a desktop, or `?touch=0` to hide them.
+
+Test screen: arrows move the sprite, M toggles magnify, L toggles the 4-sprites-per-line limit, B cycles the backdrop color, Esc returns.
 
 ## Repository layout
 
@@ -32,7 +43,7 @@ Title screen: Enter opens the display test. Test screen: arrows move the sprite,
 | `schemas/` | JSON Schemas (draft 2020-12) for all game data and save state |
 | `data/` | Starter content: classes, races, sample items and monsters |
 | `src/engine/render/` | Palette, TMS9918A-style tile screen, font, scaling, canvas display |
-| `src/engine/input/` | Keyboard translation and queue |
+| `src/engine/input/` | Keyboard translation and queue, touch controls |
 | `src/state/` | State machine and screens |
 | `src/ui/` | Shared UI patterns and helpers |
 | `tests/` | Vitest unit tests |
@@ -42,7 +53,7 @@ Title screen: Enter opens the display test. Test screen: arrows move the sprite,
 
 - Imports use explicit `.ts` extensions.
 - Erasable TypeScript only: no `enum`, `namespace`, or constructor parameter properties. This keeps every module runnable by Node's type stripping as well as Vite.
-- Game rules stay in pure functions/classes with no DOM access, so they are unit-testable; only `display.ts`, `keyboard.ts`, and `main.ts` touch the browser.
+- Game rules stay in pure functions/classes with no DOM access, so they are unit-testable; only `display.ts`, `keyboard.ts`, `touchControls.ts`, and `main.ts` touch the browser.
 
 ## Deployment
 
@@ -50,8 +61,8 @@ CI runs tests and the build on every push and PR. Every push to `main` (and any 
 
 ## Target platform
 
-Desktop Chrome (current stable). Other Chromium browsers should work; nothing is tested elsewhere.
+Desktop Chrome (current stable) and mobile Chromium browsers. Other browsers should work; nothing is tested elsewhere.
 
 ## Status
 
-Milestone 1 (scaffold, tile engine, palette, font, input) complete. Next: milestone 2, party creation. See the milestone table in `docs/DESIGN.md`.
+Milestone 1 (scaffold, tile engine, palette, font, input) complete, plus touch controls. Next: milestone 2, party creation. See the milestone table in `docs/DESIGN.md`.
