@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tod-web</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; }
+      body { display: grid; place-items: center; overflow: hidden; }
+      canvas { display: block; image-rendering: pixelated; outline: none; }
+      noscript { color: #ccc; font: 16px/1.5 system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <canvas id="screen" aria-label="Game screen" tabindex="0"></canvas>
+    <noscript>This game needs JavaScript enabled.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
