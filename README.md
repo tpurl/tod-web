@@ -9,6 +9,19 @@ A Chrome-first web remake of the 1982 TI-99/4A dungeon crawler *Tunnels of Doom*
 - **Name:** `tod-web` is a working title. The original's name is not used for any public release.
 - **Extensions:** features not in the original (e.g. races and race bonuses) are flagged as extensions and can be switched off for a "classic rules" game.
 
+## Running locally
+
+Requires Node 20+.
+
+```
+npm install
+npm run dev        # http://localhost:5173
+npm test           # unit tests
+npm run build      # typecheck + production build to dist/
+```
+
+Title screen: Enter opens the display test. Test screen: arrows move the sprite, M toggles magnify, L toggles the 4-sprites-per-line limit, B cycles the backdrop color, Esc returns.
+
 ## Repository layout
 
 | Path | Contents |
@@ -16,8 +29,22 @@ A Chrome-first web remake of the 1982 TI-99/4A dungeon crawler *Tunnels of Doom*
 | `docs/DESIGN.md` | Design reference: architecture, specs, rules, milestones |
 | `schemas/` | JSON Schemas (draft 2020-12) for all game data and save state |
 | `data/` | Starter content: classes, races, sample items and monsters |
-| `src/` | Game source (TypeScript + Vite), to be scaffolded in milestone 1 |
+| `src/engine/render/` | Palette, TMS9918A-style tile screen, font, scaling, canvas display |
+| `src/engine/input/` | Keyboard translation and queue |
+| `src/state/` | State machine and screens |
+| `src/ui/` | Shared UI patterns and helpers |
+| `tests/` | Vitest unit tests |
 | `tools/calibration/` | Emulator capture notes and fitted tables |
+
+## Conventions
+
+- Imports use explicit `.ts` extensions.
+- Erasable TypeScript only: no `enum`, `namespace`, or constructor parameter properties. This keeps every module runnable by Node's type stripping as well as Vite.
+- Game rules stay in pure functions/classes with no DOM access, so they are unit-testable; only `display.ts`, `keyboard.ts`, and `main.ts` touch the browser.
+
+## Deployment
+
+CI runs tests and the build on every push and PR. GitHub Pages deploy is opt-in: set Settings > Pages > Source to "GitHub Actions" and add the repository variable `PAGES_ENABLED=true`. Pages on a private repo requires a paid GitHub plan.
 
 ## Target platform
 
@@ -25,4 +52,4 @@ Desktop Chrome (current stable). Other Chromium browsers should work; nothing is
 
 ## Status
 
-Design phase. See the milestone table in `docs/DESIGN.md`.
+Milestone 1 (scaffold, tile engine, palette, font, input) in review. See the milestone table in `docs/DESIGN.md`.
