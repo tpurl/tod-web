@@ -4,6 +4,7 @@
     {
       "id": "fighter",
       "name": "Fighter",
+      "blurb": "BEST WITH WEAPONS AND ARMOR",
       "hpDie": "1d10",
       "canCast": false,
       "weaponLimits": null,
@@ -15,6 +16,7 @@
     {
       "id": "wizard",
       "name": "Wizard",
+      "blurb": "CASTS SPELLS BUT IS FRAIL",
       "hpDie": "1d4",
       "canCast": true,
       "spellPointStat": "intelligence",
@@ -27,6 +29,7 @@
     {
       "id": "rogue",
       "name": "Rogue",
+      "blurb": "FINDS TRAPS AND SECRET DOORS",
       "hpDie": "1d6",
       "canCast": false,
       "weaponLimits": null,
@@ -38,6 +41,7 @@
     {
       "id": "hero",
       "name": "Hero",
+      "blurb": "FIGHTS AND CASTS, SOLO ONLY",
       "hpDie": "1d10",
       "canCast": true,
       "spellPointStat": "intelligence",
