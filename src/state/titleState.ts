@@ -4,11 +4,12 @@ import { COLS, ROWS } from '../engine/render/tileScreen.ts';
 import { bigTextWidth, drawBigText } from '../ui/bigText.ts';
 import { CODE, loadUiTiles } from '../ui/tiles.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
+import { PartyCreationState } from './partyCreationState.ts';
 import { TestState } from './testState.ts';
 
 export const BLINK_MS = 500;
 const PROMPT = 'PRESS ENTER';
-const PROMPT_ROW = 17;
+const PROMPT_ROW = 16;
 
 export class TitleState implements GameState {
   private blinkTimer = 0;
@@ -41,7 +42,8 @@ export class TitleState implements GameState {
     const title = 'TOD';
     drawBigText(s, Math.floor((COLS - bigTextWidth(title)) / 2), 3, title, CODE.solid);
     s.printCentered(12, 'A DUNGEON ADVENTURE');
-    s.printCentered(20, 'WORKING TITLE  M1 BUILD');
+    s.printCentered(18, 'T:DISPLAY TEST');
+    s.printCentered(20, 'WORKING TITLE  M2 BUILD');
 
     this.blinkTimer = 0;
     this.promptVisible = true;
@@ -49,7 +51,8 @@ export class TitleState implements GameState {
   }
 
   onKey(press: KeyPress): void {
-    if (press.key === 'enter') this.ctx.machine.change(new TestState(this.ctx));
+    if (press.key === 'enter') this.ctx.machine.change(new PartyCreationState(this.ctx));
+    else if (press.key === 'char' && press.char === 'T') this.ctx.machine.change(new TestState(this.ctx));
   }
 
   update(dtMs: number): void {

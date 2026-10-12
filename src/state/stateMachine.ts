@@ -1,5 +1,7 @@
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import type { TileScreen } from '../engine/render/tileScreen.ts';
+import type { Rng } from '../engine/rng.ts';
+import type { Party } from '../game/party/party.ts';
 
 /**
  * A screen of the game. TileScreen is retained-mode: states write tiles when
@@ -38,4 +40,7 @@ export class StateMachine {
 export interface AppContext {
   machine: StateMachine;
   screen: TileScreen;
+  rng: Rng;
+  /** The current adventuring party, once created. */
+  party: Party | null;
 }

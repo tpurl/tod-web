@@ -1,6 +1,7 @@
 import { Keyboard } from './engine/input/keyboard.ts';
 import { TouchControls, shouldShowTouch } from './engine/input/touchControls.ts';
 import { Display } from './engine/render/display.ts';
+import { createRng, timeSeed } from './engine/rng.ts';
 import { TileScreen } from './engine/render/tileScreen.ts';
 import { StateMachine, type AppContext } from './state/stateMachine.ts';
 import { TitleState } from './state/titleState.ts';
@@ -30,7 +31,7 @@ if (
 window.addEventListener('touchstart', () => touch.show(), { once: true, passive: true });
 
 const machine = new StateMachine();
-const ctx: AppContext = { machine, screen };
+const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null };
 
 machine.change(new TitleState(ctx));
 canvas.focus();
