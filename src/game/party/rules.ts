@@ -31,6 +31,10 @@ export interface CharacterClass {
   spellPointStat?: StatKey;
   searchBonus: number;
   soloOnly: boolean;
+  /** Item ids this class may wield; null means any weapon its item rules allow. */
+  weaponLimits: string[] | null;
+  /** Armor and shield ids this class may wear; null means any. */
+  armorLimits: string[] | null;
 }
 
 export interface Race {
@@ -49,6 +53,14 @@ function checkBlurb(v: unknown, id: string): string {
   const s = v === undefined ? '' : String(v);
   if (s.length > BLURB_MAX) throw new Error(`blurb for ${id} is longer than ${BLURB_MAX} characters`);
   return s;
+}
+
+function idList(v: unknown, id: string, field: string): string[] | null {
+  if (v === null || v === undefined) return null;
+  if (!Array.isArray(v) || v.some((x) => typeof x !== 'string')) {
+    throw new Error(`classes.json: ${field} on ${id} must be null or a list of item ids`);
+  }
+  return v as string[];
 }
 
 const CLASS_IDS: readonly ClassId[] = ['fighter', 'wizard', 'rogue', 'hero'];
@@ -71,6 +83,8 @@ export function validateClasses(raw: unknown): CharacterClass[] {
       spellPointStat: c.spellPointStat as StatKey | undefined,
       searchBonus: Number(c.searchBonus ?? 0),
       soloOnly: Boolean(c.soloOnly),
+      weaponLimits: idList(c.weaponLimits, String(c.id), 'weaponLimits'),
+      armorLimits: idList(c.armorLimits, String(c.id), 'armorLimits'),
     };
   });
 }

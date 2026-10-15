@@ -6,7 +6,7 @@ import { PartyBuilder } from '../game/party/partyBuilder.ts';
 import { STAT_ABBR, STAT_KEYS, getClass, getRace } from '../game/party/rules.ts';
 import { CONTENT_TOP, drawFrame, menuItem, rjust, signed } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
-import { PartyReadyState } from './partyReadyState.ts';
+import { StoreState } from './storeState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 import { TitleState } from './titleState.ts';
 
@@ -40,7 +40,7 @@ export class PartyCreationState implements GameState {
     }
     if (this.builder.step === 'done' && this.builder.party) {
       this.ctx.party = this.builder.party;
-      this.ctx.machine.change(new PartyReadyState(this.ctx));
+      this.ctx.machine.change(new StoreState(this.ctx));
       return;
     }
     this.cursorOn = true;

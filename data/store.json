@@ -1,0 +1,19 @@
+{
+  "_note": "General store stock. bundle = units sold per purchase (price is per unit). sellRate is the fraction of price paid back. [CALIBRATE]",
+  "sellRate": 0.5,
+  "stock": [
+    { "item": "dagger" },
+    { "item": "staff" },
+    { "item": "sword" },
+    { "item": "great_axe" },
+    { "item": "short_bow" },
+    { "item": "arrows", "bundle": 20 },
+    { "item": "robe" },
+    { "item": "leather_armor" },
+    { "item": "chain_mail" },
+    { "item": "shield" },
+    { "item": "rations", "bundle": 5 },
+    { "item": "healing_potion" },
+    { "item": "map_scroll" }
+  ]
+}

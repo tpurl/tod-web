@@ -4,6 +4,7 @@ import { createRng } from '../src/engine/rng.ts';
 import { PartyCreationState } from '../src/state/partyCreationState.ts';
 import { PartyReadyState } from '../src/state/partyReadyState.ts';
 import { StateMachine, type AppContext } from '../src/state/stateMachine.ts';
+import { StoreState, windowStart } from '../src/state/storeState.ts';
 import { TestState } from '../src/state/testState.ts';
 import { BLINK_MS, TitleState } from '../src/state/titleState.ts';
 
@@ -31,7 +32,7 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(TestState);
   });
 
-  it('party creation runs end to end and hands the party to the ready screen', () => {
+  it('party creation runs end to end and hands the party to the store', () => {
     const ctx = app();
     ctx.machine.change(new PartyCreationState(ctx));
     const k = (key: 'enter' | 'back' | 'up' | 'down') => ctx.machine.onKey({ key, repeat: false });
@@ -42,9 +43,23 @@ describe('states', () => {
     k('enter'); // race
     k('enter'); // keep roll
     k('enter'); // review -> done
-    expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
+    expect(ctx.machine.state).toBeInstanceOf(StoreState);
     expect(ctx.party?.members[0].name).toBe('ZED');
     expect(ctx.party?.members[0].classId).toBe('hero');
+    k('enter'); // buy the first stock item
+    expect(ctx.party?.members[0].inventory.length).toBe(1);
+    k('back');
+    k('enter'); // leave the store
+    expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
+    k('back'); // back into the store
+    expect(ctx.machine.state).toBeInstanceOf(StoreState);
+  });
+
+  it('store list scrolling keeps the cursor visible', () => {
+    expect(windowStart(0, 5, 13)).toBe(0);
+    expect(windowStart(0, 20, 13)).toBe(0);
+    expect(windowStart(10, 20, 13)).toBe(4);
+    expect(windowStart(19, 20, 13)).toBe(7);
   });
 
   it('Back from party size returns to the title', () => {
