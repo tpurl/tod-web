@@ -1,6 +1,7 @@
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import type { TileScreen } from '../engine/render/tileScreen.ts';
 import type { Rng } from '../engine/rng.ts';
+import type { Dungeon } from '../game/dungeon/dungeon.ts';
 import type { Party } from '../game/party/party.ts';
 
 /**
@@ -43,4 +44,6 @@ export interface AppContext {
   rng: Rng;
   /** The current adventuring party, once created. */
   party: Party | null;
+  /** The current dungeon, created on first entry and kept until a new party is made. */
+  dungeon: Dungeon | null;
 }

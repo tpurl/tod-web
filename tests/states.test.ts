@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
+import { DungeonState } from '../src/state/dungeonState.ts';
 import { PartyCreationState } from '../src/state/partyCreationState.ts';
 import { PartyReadyState } from '../src/state/partyReadyState.ts';
 import { StateMachine, type AppContext } from '../src/state/stateMachine.ts';
@@ -9,7 +10,7 @@ import { TestState } from '../src/state/testState.ts';
 import { BLINK_MS, TitleState } from '../src/state/titleState.ts';
 
 function app(): AppContext {
-  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null };
+  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null };
 }
 
 function rowText(s: TileScreen, row: number): string {
@@ -32,7 +33,7 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(TestState);
   });
 
-  it('party creation runs end to end and hands the party to the store', () => {
+  it('party creation runs through the store and into the dungeon', () => {
     const ctx = app();
     ctx.machine.change(new PartyCreationState(ctx));
     const k = (key: 'enter' | 'back' | 'up' | 'down') => ctx.machine.onKey({ key, repeat: false });
@@ -53,6 +54,15 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
     k('back'); // back into the store
     expect(ctx.machine.state).toBeInstanceOf(StoreState);
+    k('back');
+    k('enter'); // leave again
+    k('enter'); // go down
+    expect(ctx.machine.state).toBeInstanceOf(DungeonState);
+    expect(ctx.party?.depth).toBe(1);
+    k('enter'); // standing on the up stairs: asks to leave
+    k('enter');
+    expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
+    expect(ctx.screen.sprites.every((sp) => !sp.visible)).toBe(true);
   });
 
   it('store list scrolling keeps the cursor visible', () => {

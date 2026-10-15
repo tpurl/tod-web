@@ -40,6 +40,7 @@ export class PartyCreationState implements GameState {
     }
     if (this.builder.step === 'done' && this.builder.party) {
       this.ctx.party = this.builder.party;
+      this.ctx.dungeon = null;
       this.ctx.machine.change(new StoreState(this.ctx));
       return;
     }
