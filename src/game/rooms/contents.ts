@@ -172,8 +172,10 @@ export function hurt(c: Character, amount: number): number {
   return before - c.hp.current;
 }
 
+/** Restores HP (never past max) and cures poison. Does nothing for the dead. */
 export function heal(c: Character, amount: number): number {
   if (c.hp.current <= 0) return 0;
+  c.status = c.status.filter((s) => s !== 'poisoned');
   const before = c.hp.current;
   c.hp.current = Math.min(c.hp.max, c.hp.current + amount);
   return c.hp.current - before;
