@@ -19,6 +19,7 @@ export class PartyReadyState implements GameState {
     const s = this.ctx.screen;
     loadUiTiles(s);
     s.hideAllSprites();
+    this.ctx.actions.setActions([{ label: 'QUIT TO TITLE', key: 'char:Q' }]);
     drawFrame(s, 'THE DUNGEON ENTRANCE', ['ENTER:GO DOWN   BACK:STORE', 'Q:QUIT TO TITLE']);
     const party = this.ctx.party;
     if (!party) return;

@@ -62,6 +62,14 @@ export class PartyCreationState implements GameState {
   // ---- drawing -----------------------------------------------------------
 
   private draw(): void {
+    const step = this.builder.step;
+    this.ctx.actions.setActions(
+      step === 'roll'
+        ? [{ label: 'REROLL', key: 'char:R' }]
+        : step === 'size'
+          ? [{ label: 'RACES ON/OFF', key: 'char:R' }]
+          : [],
+    );
     switch (this.builder.step) {
       case 'size':
         return this.drawSize();

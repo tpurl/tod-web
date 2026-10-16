@@ -105,6 +105,11 @@ export class TestState implements GameState {
       Object.assign(s.sprites[i + 1], { x: 40 + i * 40, y: 128, pattern: BLOB_PATTERN, color, visible: true });
     });
 
+    this.ctx.actions.setActions([
+      { label: 'MAGNIFY', key: 'char:M' },
+      { label: 'LINE LIMIT', key: 'char:L' },
+      { label: 'BACKDROP', key: 'char:B' },
+    ]);
     this.drawStatus();
   }
 
