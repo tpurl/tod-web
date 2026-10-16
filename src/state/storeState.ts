@@ -58,6 +58,16 @@ export class StoreState implements GameState {
         : m.mode === 'sell'
           ? ['ENTER:SELL  E:EQUIP  S:BUY', `BACK:LEAVE${buyerHint}`]
           : ['ENTER:BUY   S:SELL/EQUIP', `BACK:LEAVE${buyerHint}`];
+    this.ctx.actions.setActions(
+      m.mode === 'buy'
+        ? [{ label: 'SELL / EQUIP', key: 'char:S' }]
+        : m.mode === 'sell'
+          ? [
+              { label: 'EQUIP', key: 'char:E' },
+              { label: 'BUY', key: 'char:S' },
+            ]
+          : [],
+    );
     const message = m.mode === 'leave' ? 'LEAVE FOR THE DUNGEON?' : m.message || m.hint;
     drawFrame(s, 'GENERAL STORE', hints, '');
     if (message) {

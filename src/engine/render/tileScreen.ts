@@ -17,6 +17,20 @@ export const ROWS = 24;
 export const MAX_SPRITES = 32;
 export const SPRITES_PER_LINE = 4;
 
+/**
+ * A pixel layer drawn over the tiles and under the sprites, standing in for
+ * the chip's bitmap mode (Graphics II) where the corridor view needs free
+ * drawing. 0 is transparent. Unlike the real chip there is no two-colors-per-
+ * 8-pixel-row limit; the corridor art keeps to large flat shapes instead.
+ */
+export interface Overlay {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pixels: Uint8Array;
+}
+
 export interface Sprite {
   x: number;
   y: number;
@@ -56,6 +70,7 @@ export class TileScreen {
   spriteSize: 8 | 16 = 16;
   spriteMagnify = false;
   limitSpritesPerLine = false;
+  overlay: Overlay | null = null;
 
   constructor() {
     this.colorTable.fill((COLOR.white << 4) | COLOR.transparent);
@@ -144,6 +159,7 @@ export class TileScreen {
     }
     const backdrop = this.backdrop === COLOR.transparent ? COLOR.black : this.backdrop;
     this.renderTiles(out, backdrop);
+    if (this.overlay) this.renderOverlay(out, this.overlay);
     this.renderSprites(out);
   }
 
@@ -160,6 +176,18 @@ export class TileScreen {
           const oBase = (row * 8 + y) * SCREEN_WIDTH + col * 8;
           for (let x = 0; x < 8; x++) out[oBase + x] = bits & (0x80 >> x) ? fg : bg;
         }
+      }
+    }
+  }
+
+  private renderOverlay(out: Uint8Array, o: Overlay): void {
+    for (let y = 0; y < o.height; y++) {
+      const sy = o.y + y;
+      if (sy < 0 || sy >= SCREEN_HEIGHT) continue;
+      for (let x = 0; x < o.width; x++) {
+        const sx = o.x + x;
+        const c = o.pixels[y * o.width + x];
+        if (c && sx >= 0 && sx < SCREEN_WIDTH) out[sy * SCREEN_WIDTH + sx] = c;
       }
     }
   }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RecordingActions } from '../src/engine/input/actionBar.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
 import { DungeonState } from '../src/state/dungeonState.ts';
@@ -10,7 +11,7 @@ import { TestState } from '../src/state/testState.ts';
 import { BLINK_MS, TitleState } from '../src/state/titleState.ts';
 
 function app(): AppContext {
-  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null };
+  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null, actions: new RecordingActions() };
 }
 
 function rowText(s: TileScreen, row: number): string {
@@ -42,6 +43,7 @@ describe('states', () => {
     type('ZED');
     k('enter'); // name
     k('enter'); // race
+    expect((ctx.actions as RecordingActions).current).toEqual([{ label: 'REROLL', key: 'char:R' }]);
     k('enter'); // keep roll
     k('enter'); // review -> done
     expect(ctx.machine.state).toBeInstanceOf(StoreState);
@@ -59,10 +61,13 @@ describe('states', () => {
     k('enter'); // go down
     expect(ctx.machine.state).toBeInstanceOf(DungeonState);
     expect(ctx.party?.depth).toBe(1);
+    expect(ctx.screen.overlay).not.toBeNull(); // starts in the 3D view
+    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH']);
     k('enter'); // standing on the up stairs: asks to leave
     k('enter');
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
     expect(ctx.screen.sprites.every((sp) => !sp.visible)).toBe(true);
+    expect(ctx.screen.overlay).toBeNull();
   });
 
   it('store list scrolling keeps the cursor visible', () => {

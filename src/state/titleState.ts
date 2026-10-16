@@ -43,8 +43,9 @@ export class TitleState implements GameState {
     drawBigText(s, Math.floor((COLS - bigTextWidth(title)) / 2), 3, title, CODE.solid);
     s.printCentered(12, 'A DUNGEON ADVENTURE');
     s.printCentered(18, 'T:DISPLAY TEST');
-    s.printCentered(20, 'WORKING TITLE  M4 BUILD');
+    s.printCentered(20, 'WORKING TITLE  M5 BUILD');
 
+    this.ctx.actions.setActions([{ label: 'DISPLAY TEST', key: 'char:T' }]);
     this.blinkTimer = 0;
     this.promptVisible = true;
     this.drawPrompt();

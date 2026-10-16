@@ -1,3 +1,4 @@
+import { ActionBar } from './engine/input/actionBar.ts';
 import { Keyboard } from './engine/input/keyboard.ts';
 import { TouchControls, shouldShowTouch } from './engine/input/touchControls.ts';
 import { Display } from './engine/render/display.ts';
@@ -11,7 +12,8 @@ const MAX_DT_MS = 100;
 
 const canvas = document.getElementById('screen');
 const stage = document.getElementById('stage');
-if (!(canvas instanceof HTMLCanvasElement) || !stage) throw new Error('#stage or #screen missing');
+const actionsEl = document.getElementById('actions');
+if (!(canvas instanceof HTMLCanvasElement) || !stage || !actionsEl) throw new Error('#stage, #screen or #actions missing');
 
 const screen = new TileScreen();
 const display = new Display(canvas, stage);
@@ -31,7 +33,8 @@ if (
 window.addEventListener('touchstart', () => touch.show(), { once: true, passive: true });
 
 const machine = new StateMachine();
-const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null };
+const actions = new ActionBar(actionsEl, (press) => keyboard.press(press));
+const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions };
 
 machine.change(new TitleState(ctx));
 canvas.focus();
