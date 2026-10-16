@@ -6,6 +6,7 @@ import { armorDefense, equippedItem } from '../items/inventory.ts';
 import { getItem } from '../items/items.ts';
 import { getMonster, groupName, type MonsterDef } from '../monsters/monsters.ts';
 import { statBonus, type Character } from '../party/character.ts';
+import { drainXp } from '../party/leveling.ts';
 import type { Party } from '../party/party.ts';
 import { heal, hurt, type MonsterInstance, type RoomContents } from '../rooms/contents.ts';
 import { SPELLS, type SpellDef } from './spells.ts';
@@ -25,6 +26,11 @@ import { SPELLS, type SpellDef } from './spells.ts';
  */
 export const MOVES_PER_TURN = 3;
 export const FLEE_CHANCE = 55;
+/** Chance a poisonous hit poisons, and HP lost per turn while poisoned. [CALIBRATE] */
+export const POISON_CHANCE = 30;
+export const POISON_DAMAGE = 1;
+/** Fraction of XP a draining hit takes (never below the current level). [CALIBRATE] */
+export const DRAIN_FRACTION = 0.1;
 
 export type Phase = 'parley' | 'demand' | 'pcTurn' | 'spell' | 'monsterTurn' | 'victory' | 'defeat' | 'fled' | 'peace';
 
@@ -251,6 +257,14 @@ export class CombatModel {
       const alive = u.kind === 'pc' ? u.c.hp.current > 0 : u.m.hp > 0;
       if (!alive) continue;
       if (u.kind === 'pc') {
+        if (u.c.status.includes('poisoned')) {
+          hurt(u.c, POISON_DAMAGE);
+          this.say(u.c.hp.current === 0 ? `${u.c.name} SUCCUMBS TO POISON!` : `${u.c.name} SUFFERS FROM POISON`);
+          if (u.c.hp.current === 0) {
+            if (this.checkEnd()) return;
+            continue;
+          }
+        }
         this.phase = 'pcTurn';
         this.movesLeft = MOVES_PER_TURN;
       } else {
@@ -444,7 +458,14 @@ export class CombatModel {
       return this.say(`THE ${name} MISSES ${t.c.name}`);
     }
     const n = hurt(t.c, Math.max(1, roll(damage, this.rng)));
-    this.say(t.c.hp.current === 0 ? `${t.c.name} FALLS!` : `${name} ${verb} ${t.c.name} FOR ${n}`);
+    if (t.c.hp.current === 0) return this.say(`${t.c.name} FALLS!`);
+    let extra = '';
+    if (u.def.specials.includes('poison') && !t.c.status.includes('poisoned') && this.rng.int(1, 100) <= POISON_CHANCE) {
+      t.c.status.push('poisoned');
+      extra = ' POISONED!';
+    }
+    if (u.def.specials.includes('drain_xp') && drainXp(t.c, DRAIN_FRACTION) > 0) extra += ' DRAINED!';
+    this.say(`${name} ${verb} ${t.c.name} FOR ${n}.${extra}`);
   }
 
   /** One square closer to the target through free room squares (8 directions). */
