@@ -2,13 +2,17 @@ import type { KeyPress } from '../../engine/input/keyboard.ts';
 import type { Rng } from '../../engine/rng.ts';
 import type { Party } from '../party/party.ts';
 import { arrive, getView, search, step, type Dungeon, type FloorView } from './dungeon.ts';
-import { samePoint, type Dir } from './floor.ts';
+import { LEFT_OF, RIGHT_OF } from './corridorView.ts';
+import { OPPOSITE, samePoint, type Dir } from './floor.ts';
 
 /**
- * Key-driven exploration in the map view (same pattern as PartyBuilder and
- * StoreModel). Arrows move one square in that direction; Enter uses stairs;
- * S searches for secret doors. Taking the up stairs on floor 1 asks before
- * leaving the dungeon.
+ * Key-driven exploration (same pattern as PartyBuilder and StoreModel).
+ *
+ *   3D view (default): Up walks forward, Down steps back, Left/Right turn.
+ *   Map view:          arrows walk north/east/south/west.
+ *   Both:              V switches view, Enter uses stairs, S searches.
+ *
+ * Taking the up stairs on floor 1 asks before leaving the dungeon.
  */
 export type DungeonMode = 'explore' | 'confirmExit' | 'exited';
 
@@ -16,6 +20,8 @@ const ARROWS: Partial<Record<KeyPress['key'], Dir>> = { up: 'n', right: 'e', dow
 
 export class DungeonModel {
   mode: DungeonMode = 'explore';
+  /** First-person corridor view; false shows the map. */
+  view3d = true;
   message = '';
   readonly dungeon: Dungeon;
   readonly party: Party;
@@ -53,9 +59,24 @@ export class DungeonModel {
     }
     if (this.mode !== 'explore') return;
 
-    const dir = ARROWS[p.key];
+    if (p.key === 'char' && p.char === 'V') {
+      this.view3d = !this.view3d;
+      return;
+    }
+    if (this.view3d && (p.key === 'left' || p.key === 'right')) {
+      this.party.facing = (p.key === 'left' ? LEFT_OF : RIGHT_OF)[this.party.facing];
+      return;
+    }
+    const dir = this.view3d ? (p.key === 'up' ? this.party.facing : p.key === 'down' ? OPPOSITE[this.party.facing] : undefined) : ARROWS[p.key];
     if (dir) {
-      step(this.view, this.party, dir);
+      const facing = this.party.facing;
+      const moved = step(this.view, this.party, dir);
+      // Stepping back in the 3D view keeps the party looking the same way.
+      if (this.view3d) this.party.facing = facing;
+      if (moved === 'blocked') {
+        if (this.view3d) this.message = 'A WALL BLOCKS THE WAY';
+        return;
+      }
       if (this.onStairsDown) this.message = 'STAIRS DOWN. ENTER TO DESCEND';
       else if (this.onStairsUp) this.message = this.party.depth === 1 ? 'STAIRS UP. ENTER TO LEAVE' : 'STAIRS UP. ENTER TO CLIMB';
       return;

@@ -1,3 +1,4 @@
+import type { ActionSink } from '../engine/input/actionBar.ts';
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import type { TileScreen } from '../engine/render/tileScreen.ts';
 import type { Rng } from '../engine/rng.ts';
@@ -46,4 +47,6 @@ export interface AppContext {
   party: Party | null;
   /** The current dungeon, created on first entry and kept until a new party is made. */
   dungeon: Dungeon | null;
+  /** Clickable buttons under the game for the current screen's commands. */
+  actions: ActionSink;
 }
