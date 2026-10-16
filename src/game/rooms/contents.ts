@@ -12,7 +12,7 @@ import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
 /**
  * What is in each room (DESIGN.md section 7.3), generated from the floor's
  * seed, and the rules for treasure, fountains, and traps. Monsters are
- * placed and shown here; fighting them is milestone 7.
+ * placed here; fighting them is in game/combat.
  *
  * Every probability and amount is a placeholder until calibrated against
  * the original. [CALIBRATE]
@@ -54,6 +54,8 @@ export interface Trap {
 
 export interface RoomContents {
   roomId: number;
+  /** Set when the party talked its way past: the monsters stay but won't fight. */
+  peaceful: boolean;
   monsters: MonsterInstance[];
   treasure: Treasure | null;
   fountain: Fountain | null;
@@ -99,7 +101,7 @@ export function populateFloor(floor: Floor, rng: Rng): RoomContents[] {
   );
   const candidates = monstersForDepth(floor.depth);
   return floor.rooms.map((room) => {
-    const c: RoomContents = { roomId: room.id, monsters: [], treasure: null, fountain: null, trap: null };
+    const c: RoomContents = { roomId: room.id, peaceful: false, monsters: [], treasure: null, fountain: null, trap: null };
     // The room you arrive in is always safe.
     if (room === upRoom) return c;
     const cells = freeCells(room, floor);

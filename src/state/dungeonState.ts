@@ -13,6 +13,7 @@ import { PARTY_SPRITE, PARTY_SPRITE_16, MAP_TILE, loadMapTiles, loadPartySprites
 import { loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
 import { MESSAGE_ROW, HINT_ROWS } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
+import { CombatState } from './combatState.ts';
 import { GameOverState } from './gameOverState.ts';
 import { PartyReadyState } from './partyReadyState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
@@ -30,11 +31,13 @@ export class DungeonState implements GameState {
   readonly model: DungeonModel;
   private readonly ctx: AppContext;
 
-  constructor(ctx: AppContext) {
+  /** resume: come back to where the party already is (after a fight) instead of entering at floor 1. */
+  constructor(ctx: AppContext, opts: { resume?: boolean; message?: string } = {}) {
     this.ctx = ctx;
     if (!ctx.party) throw new Error('DungeonState needs a party');
     if (!ctx.dungeon) ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff));
-    this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng);
+    this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng, { enter: !opts.resume });
+    if (opts.message) this.model.message = opts.message;
   }
 
   enter(): void {
@@ -64,6 +67,10 @@ export class DungeonState implements GameState {
     }
     if (this.model.mode === 'dead') {
       this.ctx.machine.change(new GameOverState(this.ctx, this.model.message));
+      return;
+    }
+    if (this.model.mode === 'combat' && this.model.combat) {
+      this.ctx.machine.change(new CombatState(this.ctx, this.model.combat));
       return;
     }
     this.draw();
