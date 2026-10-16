@@ -10,6 +10,8 @@ export interface Party {
   facing: 'n' | 'e' | 's' | 'w';
   stepsTaken: number;
   racesEnabled: boolean;
+  /** Counter for unique item instance ids. */
+  nextItemId: number;
   questFlags: Record<string, boolean | number | string>;
 }
 
@@ -35,6 +37,7 @@ export function createParty(
     facing: 'n',
     stepsTaken: 0,
     racesEnabled: opts.racesEnabled,
+    nextItemId: 1,
     questFlags: {},
   };
 }
