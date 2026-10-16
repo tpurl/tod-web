@@ -26,10 +26,12 @@ export interface Dungeon {
   seed: number;
   floorCount: number;
   views: Map<number, FloorView>;
+  /** The player's view choice, kept across fights and visits. */
+  view3d: boolean;
 }
 
 export function createDungeon(seed: number, floorCount = DEFAULT_FLOORS): Dungeon {
-  return { seed: seed >>> 0, floorCount, views: new Map() };
+  return { seed: seed >>> 0, floorCount, views: new Map(), view3d: true };
 }
 
 export function floorSeed(d: Dungeon, depth: number): number {

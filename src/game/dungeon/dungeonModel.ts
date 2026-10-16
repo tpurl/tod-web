@@ -14,7 +14,7 @@ import {
 } from '../rooms/contents.ts';
 import { arrive, contentsAt, getView, search, step, type Dungeon, type FloorView } from './dungeon.ts';
 import { LEFT_OF, RIGHT_OF } from './corridorView.ts';
-import { OPPOSITE, STEP, roomAt, samePoint, type Dir } from './floor.ts';
+import { OPPOSITE, STEP, roomAt, samePoint, type Dir, type Point } from './floor.ts';
 
 /**
  * Key-driven exploration (same pattern as PartyBuilder and StoreModel).
@@ -25,20 +25,28 @@ import { OPPOSITE, STEP, roomAt, samePoint, type Dir } from './floor.ts';
  *                      D drinks from a fountain.
  *
  * Stepping on a square resolves what is there: treasure is picked up
- * (unless monsters guard it), traps spring, fountains wait for D. Monsters
- * block their squares; fighting them is milestone 7.
+ * (unless monsters guard it), traps spring, fountains wait for D. Walking
+ * into a room with hostile monsters starts a fight (mode 'combat').
  *
  * Taking the up stairs on floor 1 asks before leaving the dungeon.
  */
-export type DungeonMode = 'explore' | 'confirmExit' | 'exited' | 'dead';
+export type DungeonMode = 'explore' | 'confirmExit' | 'exited' | 'dead' | 'combat';
+
+/** Where a fight starts: the room, the square the party stepped onto, and where to retreat to. */
+export interface CombatStart {
+  roomId: number;
+  entry: Point;
+  retreat: Point;
+  retreatFacing: Dir;
+}
 
 const ARROWS: Partial<Record<KeyPress['key'], Dir>> = { up: 'n', right: 'e', down: 's', left: 'w' };
 
 export class DungeonModel {
   mode: DungeonMode = 'explore';
-  /** First-person corridor view; false shows the map. */
-  view3d = true;
   message = '';
+  /** Set when mode is 'combat'. */
+  combat: CombatStart | null = null;
   readonly dungeon: Dungeon;
   readonly party: Party;
   private readonly rng: Rng;
@@ -52,6 +60,15 @@ export class DungeonModel {
       arrive(v, party, 1, v.floor.stairsUp);
       this.message = 'YOU ENTER THE DUNGEON';
     }
+  }
+
+  /** First-person corridor view; false shows the map. Kept on the dungeon so it survives fights. */
+  get view3d(): boolean {
+    return this.dungeon.view3d;
+  }
+
+  set view3d(on: boolean) {
+    this.dungeon.view3d = on;
   }
 
   get view(): FloorView {
@@ -94,6 +111,7 @@ export class DungeonModel {
         return;
       }
       const roomBefore = roomAt(this.view.floor, this.party.position.x, this.party.position.y);
+      const from = { ...this.party.position };
       const moved = step(this.view, this.party, dir);
       // Stepping back in the 3D view keeps the party looking the same way.
       if (this.view3d) this.party.facing = facing;
@@ -102,7 +120,15 @@ export class DungeonModel {
         return;
       }
       const roomNow = roomAt(this.view.floor, this.party.position.x, this.party.position.y);
-      if (roomNow && roomNow !== roomBefore) this.message = this.entryMessage(this.view.contents[roomNow.id]);
+      if (roomNow && roomNow !== roomBefore) {
+        const c = this.view.contents[roomNow.id];
+        if (!c.peaceful && aliveMonsters(c).length > 0) {
+          this.mode = 'combat';
+          this.combat = { roomId: roomNow.id, entry: { ...this.party.position }, retreat: from, retreatFacing: OPPOSITE[dir] };
+          return;
+        }
+        this.message = this.entryMessage(c);
+      }
       this.resolveSquare();
       if (!this.message) {
         if (this.onStairsDown) this.message = 'STAIRS DOWN. ENTER TO DESCEND';
