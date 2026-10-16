@@ -110,10 +110,20 @@ describe('corridor renderer', () => {
     expect(at(cv, 20, VIEW_H / 2)).toBe(VIEW_COLORS.frontWall);
   });
 
-  it('a door ahead draws a door panel in the front wall', () => {
+  it('a door ahead draws a door panel most of the wall high', () => {
     const cv = renderCorridor([{ depth: 0, left: 'wall', right: 'wall', ahead: 'door' }]);
     const f1 = frame(1);
+    const h = f1.b - f1.t;
     expect(at(cv, VIEW_W / 2, f1.b - 4)).toBe(VIEW_COLORS.door);
+    expect(at(cv, VIEW_W / 2, f1.t + Math.round(h * 0.3))).toBe(VIEW_COLORS.door);
+    expect(at(cv, VIEW_W / 2, f1.t + 2)).toBe(VIEW_COLORS.frontWall);
+  });
+
+  it('a door in a side wall is most of the wall high too', () => {
+    const cv = renderCorridor([{ depth: 0, left: 'door', right: 'wall', ahead: 'wall' }]);
+    // Halfway along the left wall, the door spans well above the middle of the view.
+    const x = Math.round((frame(0).l + frame(1).l) / 2);
+    expect(at(cv, x, VIEW_H / 2 - 10)).toBe(VIEW_COLORS.door);
   });
 
   it('shows through the overlay layer', () => {
