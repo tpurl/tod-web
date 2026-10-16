@@ -1,0 +1,8 @@
+{
+  "_note": "Spells (DESIGN.md section 11). Costs and effects are placeholders until transcribed from the manual and calibrated. [CALIBRATE]",
+  "spells": [
+    { "id": "bolt", "name": "Bolt", "key": "1", "cost": 2, "target": "enemy", "effect": "damage", "amount": "2d6", "range": 8 },
+    { "id": "heal", "name": "Heal", "key": "2", "cost": 2, "target": "ally", "effect": "heal", "amount": "2d6", "range": 8 },
+    { "id": "blast", "name": "Blast", "key": "3", "cost": 5, "target": "all_enemies", "effect": "damage", "amount": "1d8", "range": 8 }
+  ]
+}
