@@ -62,7 +62,7 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(DungeonState);
     expect(ctx.party?.depth).toBe(1);
     expect(ctx.screen.overlay).not.toBeNull(); // starts in the 3D view
-    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH']);
+    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH', 'PARTY']);
     k('enter'); // standing on the up stairs: asks to leave
     k('enter');
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
