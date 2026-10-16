@@ -1,4 +1,5 @@
-import type { Rng } from '../../engine/rng.ts';
+import { createRng, type Rng } from '../../engine/rng.ts';
+import { populateFloor, type RoomContents } from '../rooms/contents.ts';
 import type { Party } from '../party/party.ts';
 import { getClass, getRace } from '../party/rules.ts';
 import { CELL, DIRS, STEP, cellAt, doorIndexAt, isPassable, roomAt, type Dir, type Floor, type Point } from './floor.ts';
@@ -17,6 +18,8 @@ export interface FloorView {
   explored: Uint8Array;
   /** Indexes into floor.doors of secret doors the party has found. */
   found: Set<number>;
+  /** Monsters, treasure, fountains, and traps, indexed by room id. */
+  contents: RoomContents[];
 }
 
 export interface Dungeon {
@@ -37,7 +40,8 @@ export function getView(d: Dungeon, depth: number): FloorView {
   let v = d.views.get(depth);
   if (!v) {
     const floor = generateFloor(floorSeed(d, depth), depth, { hasDown: depth < d.floorCount });
-    v = { floor, explored: new Uint8Array(floor.width * floor.height), found: new Set() };
+    const contents = populateFloor(floor, createRng((floorSeed(d, depth) ^ 0x5eed) >>> 0));
+    v = { floor, explored: new Uint8Array(floor.width * floor.height), found: new Set(), contents };
     d.views.set(depth, v);
   }
   return v;
@@ -109,19 +113,39 @@ export function hiddenDoorsNear(v: FloorView, p: Point): number[] {
   return out;
 }
 
-/** One search: each nearby hidden door is found on a successful roll. Returns how many were found. */
-export function search(v: FloorView, party: Party, rng: Rng): number {
+export interface SearchResult {
+  doors: number;
+  traps: number;
+}
+
+/** One search: each nearby hidden door or trap is found on a successful roll. */
+export function search(v: FloorView, party: Party, rng: Rng): SearchResult {
   const chance = searchChance(party);
-  let n = 0;
+  const out = { doors: 0, traps: 0 };
   for (const i of hiddenDoorsNear(v, party.position)) {
     if (rng.int(1, 100) <= chance) {
       v.found.add(i);
       const d = v.floor.doors[i];
       v.explored[d.y * v.floor.width + d.x] = 1;
-      n++;
+      out.doors++;
     }
   }
-  return n;
+  const p = party.position;
+  for (const c of v.contents) {
+    const t = c.trap;
+    if (!t || t.found || t.sprung || Math.abs(t.x - p.x) > 1 || Math.abs(t.y - p.y) > 1) continue;
+    if (rng.int(1, 100) <= chance) {
+      t.found = true;
+      out.traps++;
+    }
+  }
+  return out;
+}
+
+/** Contents of the room containing a point, if any. */
+export function contentsAt(v: FloorView, p: Point): RoomContents | undefined {
+  const room = roomAt(v.floor, p.x, p.y);
+  return room ? v.contents[room.id] : undefined;
 }
 
 /** Places the party on a floor at a point, facing into open space if possible. */

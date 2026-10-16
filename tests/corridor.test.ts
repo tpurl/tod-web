@@ -26,7 +26,7 @@ function floorFrom(rows: string[]): FloorView {
     }),
   );
   const floor: Floor = { depth: 1, seed: 0, width, height, cells, rooms: [], doors, stairsUp: { x: 1, y: 1 }, stairsDown: null };
-  return { floor, explored: new Uint8Array(width * height), found: new Set() };
+  return { floor, explored: new Uint8Array(width * height), found: new Set(), contents: [] };
 }
 
 describe('corridor slices', () => {
