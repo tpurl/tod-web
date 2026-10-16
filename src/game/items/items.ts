@@ -33,6 +33,10 @@ export interface ItemDef {
   weapon: WeaponStats | null;
   defense: number;
   effect: ItemEffect | null;
+  /** Relative weight in treasure; 0 means never found as treasure. */
+  rarity: number;
+  /** Floors where it can appear as treasure (any if absent). */
+  depth?: { min: number; max: number };
 }
 
 /** Longest item name that fits the store list. */
@@ -82,6 +86,8 @@ export function validateItems(raw: unknown): ItemDef[] {
       weapon,
       defense: Number(r.defense ?? 0),
       effect,
+      rarity: Number(r.rarity ?? 0),
+      depth: r.depth ? (r.depth as { min: number; max: number }) : undefined,
     };
   });
 }

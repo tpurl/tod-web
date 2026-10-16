@@ -7,9 +7,13 @@ import { createDungeon, isExplored } from '../game/dungeon/dungeon.ts';
 import { corridorSlices } from '../game/dungeon/corridorView.ts';
 import { DungeonModel } from '../game/dungeon/dungeonModel.ts';
 import { CELL, cellAt, doorIndexAt, roomAt, samePoint } from '../game/dungeon/floor.ts';
-import { PARTY_SPRITE, MAP_TILE, loadMapTiles, loadPartySprites } from '../ui/dungeonTiles.ts';
+import { aliveMonsters } from '../game/rooms/contents.ts';
+import { getMonster } from '../game/monsters/monsters.ts';
+import { PARTY_SPRITE, PARTY_SPRITE_16, MAP_TILE, loadMapTiles, loadPartySprites } from '../ui/dungeonTiles.ts';
+import { loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
 import { MESSAGE_ROW, HINT_ROWS } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
+import { GameOverState } from './gameOverState.ts';
 import { PartyReadyState } from './partyReadyState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 
@@ -21,7 +25,7 @@ export const VIEW_TOP = 8;
 
 const FACING_NAME = { n: 'NORTH', e: 'EAST', s: 'SOUTH', w: 'WEST' } as const;
 
-/** The dungeon screen: first-person corridor view or top-down map. Rules live in DungeonModel. */
+/** The dungeon screen: first-person corridor view, room close-up, or top-down map. Rules live in DungeonModel. */
 export class DungeonState implements GameState {
   readonly model: DungeonModel;
   private readonly ctx: AppContext;
@@ -38,6 +42,7 @@ export class DungeonState implements GameState {
     loadUiTiles(s);
     loadMapTiles(s);
     loadPartySprites(s);
+    loadMonsterSprites(s);
     s.hideAllSprites();
     s.spriteSize = 8;
     s.spriteMagnify = false;
@@ -57,6 +62,10 @@ export class DungeonState implements GameState {
       this.ctx.machine.change(new PartyReadyState(this.ctx));
       return;
     }
+    if (this.model.mode === 'dead') {
+      this.ctx.machine.change(new GameOverState(this.ctx, this.model.message));
+      return;
+    }
     this.draw();
   }
 
@@ -67,6 +76,7 @@ export class DungeonState implements GameState {
     const m = this.model;
     const p = m.party;
     s.clear();
+    s.hideAllSprites();
 
     printHi(s, 0, 0, `FLOOR ${p.depth}`);
     const status = m.view3d ? `FACING ${FACING_NAME[p.facing]}` : `GOLD ${p.gold} FOOD ${p.food}`;
@@ -77,22 +87,25 @@ export class DungeonState implements GameState {
       // Inside a room the view switches to a close-up of the room from above.
       const cv = renderRoom(m.view, room);
       s.overlay = { x: 0, y: VIEW_TOP, width: VIEW_W, height: VIEW_H, pixels: cv.pixels };
-      const { px, py } = roomCellCenter(room, p.position.x, p.position.y);
-      s.spriteMagnify = true;
-      Object.assign(s.sprites[0], {
-        x: Math.round(px) - 8,
-        y: VIEW_TOP + Math.round(py) - 8,
-        pattern: PARTY_SPRITE[p.facing],
-        color: COLOR.cyan,
-        visible: true,
+      s.spriteSize = 16;
+      s.spriteMagnify = false;
+      const place = (i: number, x: number, y: number, pattern: number, color: number) => {
+        const { px, py } = roomCellCenter(room, x, y);
+        Object.assign(s.sprites[i], { x: Math.round(px) - 8, y: VIEW_TOP + Math.round(py) - 8, pattern, color, visible: true });
+      };
+      place(0, p.position.x, p.position.y, PARTY_SPRITE_16[p.facing], COLOR.cyan);
+      const c = m.view.contents[room.id];
+      aliveMonsters(c).forEach((mon, i) => {
+        const def = getMonster(mon.monsterId);
+        place(i + 1, mon.x, mon.y, monsterSpriteCode(def.sprite.pattern), def.sprite.color);
       });
     } else if (m.view3d) {
-      s.sprites[0].visible = false;
       const slices = corridorSlices(m.view, p.position, p.facing);
       const cv = renderCorridor(slices);
       s.overlay = { x: 0, y: VIEW_TOP, width: VIEW_W, height: VIEW_H, pixels: cv.pixels };
     } else {
       s.overlay = null;
+      s.spriteSize = 8;
       s.spriteMagnify = false;
       this.drawMap();
       Object.assign(s.sprites[0], {
@@ -119,6 +132,7 @@ export class DungeonState implements GameState {
         : [
             { label: m.view3d ? 'MAP' : '3D VIEW', key: 'char:V' },
             { label: 'SEARCH', key: 'char:S' },
+            ...(m.atFountain ? [{ label: 'DRINK', key: 'char:D' }] : []),
           ],
     );
   }
@@ -132,6 +146,15 @@ export class DungeonState implements GameState {
         if (!isExplored(v, x, y)) continue;
         s.put(MAP_LEFT + x, MAP_TOP + y, this.tileFor(x, y));
       }
+    }
+    // Room features the party has seen.
+    for (const c of v.contents) {
+      const show = (p: { x: number; y: number }, tile: number) => {
+        if (isExplored(v, p.x, p.y)) s.put(MAP_LEFT + p.x, MAP_TOP + p.y, tile);
+      };
+      if (c.fountain) show(c.fountain, MAP_TILE.fountain);
+      if (c.trap && (c.trap.found || c.trap.sprung)) show(c.trap, MAP_TILE.trap);
+      if (c.treasure && !c.treasure.taken) show(c.treasure, MAP_TILE.treasure);
     }
   }
 
