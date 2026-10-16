@@ -16,6 +16,7 @@ import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { CombatState } from './combatState.ts';
 import { GameOverState } from './gameOverState.ts';
 import { PartyReadyState } from './partyReadyState.ts';
+import { PartyStatusState } from './partyStatusState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 
 /** The map occupies rows 1..20, columns 1..30: one floor square per tile. */
@@ -60,6 +61,10 @@ export class DungeonState implements GameState {
   }
 
   onKey(press: KeyPress): void {
+    if (press.key === 'char' && press.char === 'P' && this.model.mode === 'explore') {
+      this.ctx.machine.change(new PartyStatusState(this.ctx, () => new DungeonState(this.ctx, { resume: true })));
+      return;
+    }
     this.model.onKey(press);
     if (this.model.mode === 'exited') {
       this.ctx.machine.change(new PartyReadyState(this.ctx));
@@ -139,6 +144,7 @@ export class DungeonState implements GameState {
         : [
             { label: m.view3d ? 'MAP' : '3D VIEW', key: 'char:V' },
             { label: 'SEARCH', key: 'char:S' },
+            { label: 'PARTY', key: 'char:P' },
             ...(m.atFountain ? [{ label: 'DRINK', key: 'char:D' }] : []),
           ],
     );

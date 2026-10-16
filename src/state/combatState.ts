@@ -6,12 +6,14 @@ import { renderRoom, roomCellCenter } from '../engine/render/roomRenderer.ts';
 import { COLS } from '../engine/render/tileScreen.ts';
 import { CombatModel } from '../game/combat/combat.ts';
 import { getView } from '../game/dungeon/dungeon.ts';
+import { applyLevelUps } from '../game/party/leveling.ts';
 import type { CombatStart } from '../game/dungeon/dungeonModel.ts';
 import { loadMapTiles, loadPartySprites } from '../ui/dungeonTiles.ts';
 import { ADVENTURER_SPRITE, loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { DungeonState, VIEW_TOP } from './dungeonState.ts';
 import { GameOverState } from './gameOverState.ts';
+import { LevelUpState } from './levelUpState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 
 /** Time between monster actions, so the player can follow them. */
@@ -123,7 +125,9 @@ export class CombatState implements GameState {
       const lead = m.livingPcs[0];
       if (lead) p.position = { x: lead.x, y: lead.y };
     }
-    this.ctx.machine.change(new DungeonState(this.ctx, { resume: true, message: last }));
+    const back = () => new DungeonState(this.ctx, { resume: true, message: last });
+    const gains = m.phase === 'victory' ? applyLevelUps(p.members, this.ctx.rng) : [];
+    this.ctx.machine.change(gains.length ? new LevelUpState(this.ctx, gains, back) : back());
   }
 
   private actions(): Action[] {
