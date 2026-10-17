@@ -1,6 +1,8 @@
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import { equippedItem } from '../game/items/inventory.ts';
 import { goalProgress } from '../game/scenario/scenarios.ts';
+import { getDifficulty } from '../game/scenario/difficulty.ts';
+import { COLS } from '../engine/render/tileScreen.ts';
 import { CONTENT_TOP, drawFrame } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { DungeonState } from './dungeonState.ts';
@@ -45,6 +47,8 @@ export class PartyReadyState implements GameState {
     const sc = this.ctx.scenario;
     if (sc) {
       printHi(s, 1, CONTENT_TOP + 13, sc.title);
+      const level = getDifficulty(this.ctx.difficulty).name;
+      s.print(COLS - 1 - level.length, CONTENT_TOP + 13, level);
       goalProgress(sc, party).forEach((line, i) => s.print(1, CONTENT_TOP + 14 + i, line.slice(0, 31)));
     }
   }

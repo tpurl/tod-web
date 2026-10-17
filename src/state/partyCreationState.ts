@@ -3,6 +3,7 @@ import type { TileScreen } from '../engine/render/tileScreen.ts';
 import { NAME_MAX, statBonus } from '../game/party/character.ts';
 import { MAX_PARTY } from '../game/party/party.ts';
 import { PartyBuilder } from '../game/party/partyBuilder.ts';
+import { getDifficulty } from '../game/scenario/difficulty.ts';
 import { STAT_ABBR, STAT_KEYS, getClass, getRace } from '../game/party/rules.ts';
 import { CONTENT_TOP, drawFrame, menuItem, rjust, signed } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
@@ -22,7 +23,9 @@ export class PartyCreationState implements GameState {
 
   constructor(ctx: AppContext) {
     this.ctx = ctx;
-    this.builder = new PartyBuilder(ctx.rng, { start: ctx.scenario?.start });
+    const sc = ctx.scenario;
+    const start = sc ? { gold: Math.round(sc.start.gold * getDifficulty(ctx.difficulty).goldScale), food: sc.start.food } : undefined;
+    this.builder = new PartyBuilder(ctx.rng, { start });
   }
 
   enter(): void {
