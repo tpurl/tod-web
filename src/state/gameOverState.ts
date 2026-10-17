@@ -20,6 +20,7 @@ export class GameOverState implements GameState {
     s.hideAllSprites();
     s.overlay = null;
     this.ctx.actions.setActions([]);
+    this.ctx.sound.music('music_gameover');
     drawFrame(s, 'THE END', ['ENTER:BACK TO TITLE']);
     if (this.cause) s.printCentered(CONTENT_TOP + 3, this.cause.slice(0, 32));
     const p = this.ctx.party;

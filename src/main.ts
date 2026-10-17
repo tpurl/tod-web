@@ -1,3 +1,4 @@
+import { WebAudioSound } from './engine/audio/audio.ts';
 import { ActionBar } from './engine/input/actionBar.ts';
 import { Keyboard } from './engine/input/keyboard.ts';
 import { TouchControls, shouldShowTouch } from './engine/input/touchControls.ts';
@@ -34,7 +35,10 @@ window.addEventListener('touchstart', () => touch.show(), { once: true, passive:
 
 const machine = new StateMachine();
 const actions = new ActionBar(actionsEl, (press) => keyboard.press(press));
-const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions, scenario: null };
+const sound = new WebAudioSound();
+// Chrome allows audio only after a user gesture: the first key, tap, or button.
+keyboard.onFirstInput(() => sound.unlock());
+const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions, scenario: null, sound };
 
 machine.change(new TitleState(ctx));
 canvas.focus();

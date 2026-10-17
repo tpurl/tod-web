@@ -42,10 +42,11 @@ export class TitleState implements GameState {
     const title = 'TOD';
     drawBigText(s, Math.floor((COLS - bigTextWidth(title)) / 2), 3, title, CODE.solid);
     s.printCentered(12, 'A DUNGEON ADVENTURE');
-    s.printCentered(18, 'T:DISPLAY TEST');
-    s.printCentered(20, 'WORKING TITLE  M9 BUILD');
+    s.printCentered(18, 'T:DISPLAY TEST  S:SOUND');
+    s.printCentered(20, 'WORKING TITLE  M10 BUILD');
 
-    this.ctx.actions.setActions([{ label: 'DISPLAY TEST', key: 'char:T' }]);
+    this.ctx.sound.music('music_title');
+    this.setActions();
     this.blinkTimer = 0;
     this.promptVisible = true;
     this.drawPrompt();
@@ -54,6 +55,17 @@ export class TitleState implements GameState {
   onKey(press: KeyPress): void {
     if (press.key === 'enter') this.ctx.machine.change(new ScenarioSelectState(this.ctx));
     else if (press.key === 'char' && press.char === 'T') this.ctx.machine.change(new TestState(this.ctx));
+    else if (press.key === 'char' && press.char === 'S') {
+      this.ctx.sound.setMuted(!this.ctx.sound.muted);
+      this.setActions();
+    }
+  }
+
+  private setActions(): void {
+    this.ctx.actions.setActions([
+      { label: 'DISPLAY TEST', key: 'char:T' },
+      { label: this.ctx.sound.muted ? 'SOUND: OFF' : 'SOUND: ON', key: 'char:S' },
+    ]);
   }
 
   update(dtMs: number): void {

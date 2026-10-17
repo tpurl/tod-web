@@ -36,7 +36,9 @@ export class StoreState implements GameState {
   }
 
   onKey(press: KeyPress): void {
+    const gold = this.model.party.gold;
     this.model.onKey(press);
+    if (this.model.party.gold !== gold) this.ctx.sound.play(this.model.party.gold < gold ? 'buy' : 'treasure');
     if (this.model.mode === 'left') {
       this.ctx.machine.change(new PartyReadyState(this.ctx));
       return;
