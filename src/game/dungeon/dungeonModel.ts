@@ -1,11 +1,16 @@
 import type { KeyPress } from '../../engine/input/keyboard.ts';
 import type { Rng } from '../../engine/rng.ts';
+import { addItem } from '../items/inventory.ts';
+import { getItem } from '../items/items.ts';
+import { eatIfDue } from '../party/food.ts';
 import type { Party } from '../party/party.ts';
+import { FLAG_CAPTIVE, FLAG_ITEM, goalMet, type ScenarioDef } from '../scenario/scenarios.ts';
 import { getMonster, groupName } from '../monsters/monsters.ts';
 import {
   aliveMonsters,
   drinkFountain,
   isWiped,
+  living,
   lootMessage,
   monsterGroups,
   stepOnTrap,
@@ -25,12 +30,15 @@ import { OPPOSITE, STEP, roomAt, samePoint, type Dir, type Point } from './floor
  *                      D drinks from a fountain.
  *
  * Stepping on a square resolves what is there: treasure is picked up
- * (unless monsters guard it), traps spring, fountains wait for D. Walking
- * into a room with hostile monsters starts a fight (mode 'combat').
+ * (unless monsters guard it), traps spring, fountains wait for D, and on
+ * the quest floor the captive and quest item are taken. Walking into a
+ * room with hostile monsters starts a fight (mode 'combat'). Every step
+ * may eat a ration.
  *
- * Taking the up stairs on floor 1 asks before leaving the dungeon.
+ * Taking the up stairs on floor 1 asks before leaving; leaving with the
+ * scenario's goal met wins the game (mode 'won').
  */
-export type DungeonMode = 'explore' | 'confirmExit' | 'exited' | 'dead' | 'combat';
+export type DungeonMode = 'explore' | 'confirmExit' | 'exited' | 'dead' | 'combat' | 'won';
 
 /** Where a fight starts: the room, the square the party stepped onto, and where to retreat to. */
 export interface CombatStart {
@@ -49,12 +57,14 @@ export class DungeonModel {
   combat: CombatStart | null = null;
   readonly dungeon: Dungeon;
   readonly party: Party;
+  readonly scenario: ScenarioDef | null;
   private readonly rng: Rng;
 
-  constructor(dungeon: Dungeon, party: Party, rng: Rng, opts: { enter?: boolean } = {}) {
+  constructor(dungeon: Dungeon, party: Party, rng: Rng, opts: { enter?: boolean; scenario?: ScenarioDef | null } = {}) {
     this.dungeon = dungeon;
     this.party = party;
     this.rng = rng;
+    this.scenario = opts.scenario ?? null;
     if (opts.enter ?? true) {
       const v = getView(dungeon, 1);
       arrive(v, party, 1, v.floor.stairsUp);
@@ -86,7 +96,9 @@ export class DungeonModel {
   onKey(p: KeyPress): void {
     this.message = '';
     if (this.mode === 'confirmExit') {
-      if (p.key === 'enter' || (p.key === 'char' && p.char === 'Y')) this.mode = 'exited';
+      if (p.key === 'enter' || (p.key === 'char' && p.char === 'Y')) {
+        this.mode = this.scenario && goalMet(this.scenario, this.party) ? 'won' : 'exited';
+      }
       else if (p.key === 'back' || (p.key === 'char' && p.char === 'N')) this.mode = 'explore';
       return;
     }
@@ -130,6 +142,12 @@ export class DungeonModel {
         this.message = this.entryMessage(c);
       }
       this.resolveSquare();
+      const hunger = eatIfDue(this.party);
+      if (hunger && !this.message.startsWith('FOUND')) this.message = hunger;
+      if (isWiped(this.party)) {
+        this.mode = 'dead';
+        return;
+      }
       if (!this.message) {
         if (this.onStairsDown) this.message = 'STAIRS DOWN. ENTER TO DESCEND';
         else if (this.onStairsUp) this.message = this.party.depth === 1 ? 'STAIRS UP. ENTER TO LEAVE' : 'STAIRS UP. ENTER TO CLIMB';
@@ -179,7 +197,7 @@ export class DungeonModel {
     return `${groupName(getMonster(g.monsterId), g.count)}!`;
   }
 
-  /** Treasure, traps, and fountains on the party's square. */
+  /** Treasure, traps, fountains, and quest objects on the party's square. */
   private resolveSquare(): void {
     const c = this.here;
     if (!c) return;
@@ -201,6 +219,34 @@ export class DungeonModel {
     }
     const f = c.fountain;
     if (f && samePoint(f, pos) && !this.message) this.message = f.used ? 'THE FOUNTAIN IS DRY' : 'A FOUNTAIN. D TO DRINK';
+    const q = c.quest;
+    if (q) {
+      const guarded = aliveMonsters(c).length > 0;
+      if (!q.captive.freed && samePoint(q.captive, pos)) {
+        if (guarded) this.message = 'THE GUARDS STAND IN YOUR WAY';
+        else {
+          q.captive.freed = true;
+          this.party.questFlags[FLAG_CAPTIVE] = true;
+          this.message = `YOU FREE ${q.captive.name}!`;
+        }
+      }
+      if (!q.item.taken && samePoint(q.item, pos)) {
+        if (guarded) this.message = 'THE GUARDS STAND IN YOUR WAY';
+        else {
+          q.item.taken = true;
+          this.party.questFlags[FLAG_ITEM] = true;
+          // Carried by whoever has room; the flag counts even if packs are full.
+          living(this.party).some((m) => addItem(this.party, m, q.item.itemId).result === 'ok');
+          this.message = `YOU TAKE THE ${getItem(q.item.itemId).name.toUpperCase()}!`;
+        }
+      }
+    }
+  }
+
+  /** What to say when asked to confirm leaving the dungeon. */
+  get exitPrompt(): string {
+    if (!this.scenario) return 'LEAVE THE DUNGEON?';
+    return goalMet(this.scenario, this.party) ? 'RETURN IN TRIUMPH?' : 'LEAVE? THE QUEST IS NOT DONE';
   }
 
   private useStairs(): void {
