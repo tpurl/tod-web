@@ -30,6 +30,8 @@ export interface CharacterClass {
   canCast: boolean;
   spellPointStat?: StatKey;
   searchBonus: number;
+  /** Better chance to avoid traps (manual p.20: rogues and heroes). */
+  trapAvoidance: boolean;
   soloOnly: boolean;
   /** Item ids this class may wield; null means any weapon its item rules allow. */
   weaponLimits: string[] | null;
@@ -82,6 +84,7 @@ export function validateClasses(raw: unknown): CharacterClass[] {
       canCast: Boolean(c.canCast),
       spellPointStat: c.spellPointStat as StatKey | undefined,
       searchBonus: Number(c.searchBonus ?? 0),
+      trapAvoidance: c.trapAvoidance === true,
       soloOnly: Boolean(c.soloOnly),
       weaponLimits: idList(c.weaponLimits, String(c.id), 'weaponLimits'),
       armorLimits: idList(c.armorLimits, String(c.id), 'armorLimits'),

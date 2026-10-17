@@ -1,5 +1,5 @@
 {
-  "_note": "Values marked calibrate:true are placeholders until measured against the original.",
+  "_note": "Class rules. Documented in the 1982 manual (p.20): weapon/armor/scroll limits, rogue and hero trap avoidance, hero solo only. HP dice and spell points are this remake's placeholders. [CALIBRATE]",
   "classes": [
     {
       "id": "fighter",
@@ -11,7 +11,8 @@
       "armorLimits": null,
       "searchBonus": 0,
       "soloOnly": false,
-      "calibrate": true
+      "calibrate": true,
+      "trapAvoidance": false
     },
     {
       "id": "wizard",
@@ -20,23 +21,34 @@
       "hpDie": "1d4",
       "canCast": true,
       "spellPointStat": "intelligence",
-      "weaponLimits": ["dagger", "staff"],
-      "armorLimits": ["robe"],
-      "searchBonus": 5,
+      "weaponLimits": [
+        "dagger",
+        "staff",
+        "sling"
+      ],
+      "armorLimits": [
+        "robe"
+      ],
+      "searchBonus": 0,
       "soloOnly": false,
-      "calibrate": true
+      "calibrate": true,
+      "trapAvoidance": false
     },
     {
       "id": "rogue",
       "name": "Rogue",
-      "blurb": "FINDS TRAPS AND SECRET DOORS",
+      "blurb": "AVOIDS TRAPS, LIGHT ARMOR",
       "hpDie": "1d6",
       "canCast": false,
       "weaponLimits": null,
-      "armorLimits": ["robe", "leather_armor"],
-      "searchBonus": 20,
+      "armorLimits": [
+        "robe",
+        "leather_armor"
+      ],
+      "searchBonus": 0,
       "soloOnly": false,
-      "calibrate": true
+      "calibrate": true,
+      "trapAvoidance": true
     },
     {
       "id": "hero",
@@ -47,9 +59,10 @@
       "spellPointStat": "intelligence",
       "weaponLimits": null,
       "armorLimits": null,
-      "searchBonus": 10,
+      "searchBonus": 0,
       "soloOnly": true,
-      "calibrate": true
+      "calibrate": true,
+      "trapAvoidance": true
     }
   ]
 }

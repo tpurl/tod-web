@@ -1,18 +1,21 @@
 {
-  "_note": "General store stock. bundle = units sold per purchase (price is per unit). sellRate is the fraction of price paid back. [CALIBRATE]",
+  "_note": "General store stock. bundle = units sold per purchase (price is per unit). Ranged weapons and their ammunition bundles follow the manual (p.22: 20 arrows for 20 gold, 10 quarrels for 20); rations are 10 for 20 gold (p.14). sellRate is a placeholder. [CALIBRATE]",
   "sellRate": 0.5,
   "stock": [
     { "item": "dagger" },
     { "item": "staff" },
     { "item": "sword" },
     { "item": "great_axe" },
+    { "item": "sling" },
     { "item": "short_bow" },
     { "item": "arrows", "bundle": 20 },
+    { "item": "crossbow" },
+    { "item": "quarrels", "bundle": 10 },
     { "item": "robe" },
     { "item": "leather_armor" },
     { "item": "chain_mail" },
     { "item": "shield" },
-    { "item": "rations", "bundle": 5 },
+    { "item": "rations", "bundle": 10 },
     { "item": "healing_potion" },
     { "item": "map_scroll" }
   ]
