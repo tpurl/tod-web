@@ -96,7 +96,7 @@ describe('CombatModel', () => {
     expect(model.log.at(-1)).toBe('A GOBLIN!');
   });
 
-  it('fighting a weak group ends in victory with XP and gold', () => {
+  it('fighting a weak group ends in victory; XP goes to whoever lands each kill', () => {
     const p = party('fighter', 'fighter');
     const { model, contents } = arena(['giant_rat', 'giant_rat'], p);
     model.onKey(K('enter'));
@@ -104,9 +104,21 @@ describe('CombatModel', () => {
     autoplay(model);
     expect(model.phase).toBe('victory');
     expect(contents.monsters.every((x) => x.hp === 0)).toBe(true);
-    const xp = getMonster('giant_rat').xp * 2;
-    const living = p.members.filter((c) => c.hp.current > 0).length;
-    expect(p.members.filter((c) => c.hp.current > 0).every((c) => c.xp === Math.floor(xp / living))).toBe(true);
+    const xp = getMonster('giant_rat').xp;
+    expect(p.members.reduce((s, c) => s + c.xp, 0)).toBe(xp * 2);
+    expect(p.members.every((c) => c.xp % xp === 0)).toBe(true);
+    expect(model.xpWon).toBe(xp * 2);
+  });
+
+  it('a turn is one step and then an attack (manual p.27)', () => {
+    const { model } = arena(['orc'], party('fighter'));
+    model.onKey(K('enter'));
+    while (model.phase === 'monsterTurn') model.advance();
+    const pc = model.activePc!;
+    const x = pc.x;
+    model.onKey(K('right'));
+    model.onKey(K('right'));
+    expect(pc.x - x).toBeLessThan(2);
   });
 
   it('a lone weak hero against wraiths loses', () => {
@@ -119,7 +131,7 @@ describe('CombatModel', () => {
     model.onKey(K('enter'));
     autoplay(model);
     expect(model.phase).toBe('defeat');
-    expect(p.members[0].status).toContain('dead');
+    expect(p.members[0].status).toContain('disabled');
   });
 
   it('a turn allows limited moves; Enter ends it', () => {
