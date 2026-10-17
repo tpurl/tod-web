@@ -11,6 +11,7 @@ import { drainXp } from '../party/leveling.ts';
 import type { Party } from '../party/party.ts';
 import { heal, hurt, type MonsterInstance, type RoomContents } from '../rooms/contents.ts';
 import { SPELLS, type SpellDef } from './spells.ts';
+import { attackBonusAt, getDifficulty, type Difficulty } from '../scenario/difficulty.ts';
 
 /**
  * Room combat (DESIGN.md section 9), as a key-driven model like the others.
@@ -23,6 +24,7 @@ import { SPELLS, type SpellDef } from './spells.ts';
  * weapon, C opens the spell list, U drinks a healing potion, R tries to flee,
  * Enter ends the turn. Monster turns run one at a time through advance(),
  * which the combat screen calls on a timer so the player can follow them.
+ * Monster attack and damage rise with the difficulty level and the floor.
  *
  * All formulas are placeholders until calibrated. [CALIBRATE]
  */
@@ -81,8 +83,18 @@ export class CombatModel {
   private order: Unit[] = [];
   private turn = -1;
   private readonly rng: Rng;
+  private readonly difficulty: Difficulty;
 
-  constructor(opts: { party: Party; contents: RoomContents; room: Room; floor: Floor; entry: Point; rng: Rng }) {
+  constructor(opts: {
+    party: Party;
+    contents: RoomContents;
+    room: Room;
+    floor: Floor;
+    entry: Point;
+    rng: Rng;
+    difficulty?: Difficulty;
+  }) {
+    this.difficulty = opts.difficulty ?? getDifficulty(null);
     this.party = opts.party;
     this.contents = opts.contents;
     this.room = opts.room;
@@ -472,11 +484,11 @@ export class CombatModel {
     const name = u.def.name.toUpperCase();
     if (verb === 'SHOOTS') this.sounds.push('shoot');
     else if (verb === 'BLASTS') this.sounds.push('cast');
-    if (this.rng.int(1, 100) > hitChance(u.def.attack, this.pcDefense(t.c))) {
+    if (this.rng.int(1, 100) > hitChance(u.def.attack + attackBonusAt(this.difficulty, this.floor.depth), this.pcDefense(t.c))) {
       this.sounds.push('miss');
       return this.say(`THE ${name} MISSES ${t.c.name}`);
     }
-    const n = hurt(t.c, Math.max(1, roll(damage, this.rng)));
+    const n = hurt(t.c, Math.max(1, roll(damage, this.rng) + this.difficulty.damageBonus));
     if (t.c.hp.current === 0) {
       this.sounds.push('hero_die');
       return this.say(`${t.c.name} IS DISABLED!`);
