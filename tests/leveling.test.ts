@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { KeyPress } from '../src/engine/input/keyboard.ts';
+import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
@@ -98,6 +99,7 @@ describe('screens', () => {
       dungeon: createDungeon(4),
       actions: new RecordingActions(),
       scenario: null,
+      sound: new RecordingSound(),
     };
   }
 
@@ -128,11 +130,12 @@ describe('screens', () => {
     expect(ctx.party!.position).toEqual(pos);
   });
 
-  it('the level-up screen continues to the next state', () => {
+  it('the level-up screen plays its jingle and continues to the next state', () => {
     const ctx = app();
     const gains = applyLevelUps((ctx.party!.members[0].xp = 100, ctx.party!.members), ctx.rng);
     const next: PartyStatusState = new PartyStatusState(ctx, (): GameState => next);
     ctx.machine.change(new LevelUpState(ctx, gains, () => next));
+    expect((ctx.sound as RecordingSound).played).toEqual(['level_up']);
     ctx.machine.onKey(K('enter'));
     expect(ctx.machine.state).toBe(next);
   });

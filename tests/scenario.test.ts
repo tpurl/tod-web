@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { KeyPress } from '../src/engine/input/keyboard.ts';
+import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
@@ -124,6 +125,7 @@ describe('winning', () => {
       dungeon: null,
       actions: new RecordingActions(),
       scenario: getScenario('gold_hunt'),
+      sound: new RecordingSound(),
     };
   }
 
@@ -153,6 +155,7 @@ describe('winning', () => {
     ctx.machine.onKey(K('enter'));
     expect(ctx.machine.state).toBeInstanceOf(VictoryState);
     expect(ctx.party).toBeNull();
+    expect((ctx.sound as RecordingSound).playing).toBe('music_victory');
   });
 
   it('freeing the captive and taking the orb set the quest flags', () => {
