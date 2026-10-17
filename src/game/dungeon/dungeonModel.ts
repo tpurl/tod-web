@@ -1,3 +1,4 @@
+import type { SoundId } from '../../engine/audio/sounds.ts';
 import type { KeyPress } from '../../engine/input/keyboard.ts';
 import type { Rng } from '../../engine/rng.ts';
 import { addItem } from '../items/inventory.ts';
@@ -19,7 +20,7 @@ import {
 } from '../rooms/contents.ts';
 import { arrive, contentsAt, getView, search, step, type Dungeon, type FloorView } from './dungeon.ts';
 import { LEFT_OF, RIGHT_OF } from './corridorView.ts';
-import { OPPOSITE, STEP, roomAt, samePoint, type Dir, type Point } from './floor.ts';
+import { CELL, OPPOSITE, STEP, cellAt, roomAt, samePoint, type Dir, type Point } from './floor.ts';
 
 /**
  * Key-driven exploration (same pattern as PartyBuilder and StoreModel).
@@ -56,6 +57,8 @@ export class DungeonModel {
   message = '';
   /** Set when mode is 'combat'. */
   combat: CombatStart | null = null;
+  /** Sounds the last key caused; the screen plays and clears them. */
+  sounds: SoundId[] = [];
   readonly dungeon: Dungeon;
   readonly party: Party;
   readonly scenario: ScenarioDef | null;
@@ -142,8 +145,10 @@ export class DungeonModel {
       if (this.view3d) this.party.facing = facing;
       if (moved === 'blocked') {
         if (this.view3d) this.message = 'A WALL BLOCKS THE WAY';
+        this.sounds.push('bump');
         return;
       }
+      this.sounds.push(cellAt(this.view.floor, this.party.position.x, this.party.position.y) === CELL.door ? 'door_open' : 'step');
       const roomNow = roomAt(this.view.floor, this.party.position.x, this.party.position.y);
       const asideMsg = this.message;
       if (roomNow && roomNow !== roomBefore) {
@@ -175,6 +180,7 @@ export class DungeonModel {
       if (r.doors) found.push(r.doors === 1 ? 'A SECRET DOOR' : `${r.doors} SECRET DOORS`);
       if (r.traps) found.push(r.traps === 1 ? 'A TRAP' : `${r.traps} TRAPS`);
       this.message = found.length ? `YOU FIND ${found.join(' AND ')}!` : 'YOU FIND NOTHING';
+      if (found.length) this.sounds.push('secret_found');
       return;
     }
     if (p.key === 'char' && p.char === 'D') {
@@ -183,6 +189,7 @@ export class DungeonModel {
       else if (f.used) this.message = 'THE FOUNTAIN IS DRY';
       else {
         this.message = drinkFountain(this.party, f, this.rng).message;
+        this.sounds.push('fountain');
         if (isWiped(this.party)) this.mode = 'dead';
       }
     }
@@ -245,12 +252,15 @@ export class DungeonModel {
         this.message = `THE ${getMonster(guards[0].monsterId).name.toUpperCase()}${guards[0].count > 1 ? 'S GUARD' : ' GUARDS'} IT`;
       } else {
         this.message = lootMessage(takeTreasure(this.party, t));
+        this.sounds.push('treasure');
       }
     }
     const trap = c.trap;
     if (trap && samePoint(trap, pos)) {
+      const wasSprung = trap.sprung;
       const msg = stepOnTrap(this.party, trap, this.party.depth, this.rng);
       if (msg) this.message = msg;
+      if (trap.sprung && !wasSprung) this.sounds.push('trap');
       if (isWiped(this.party)) this.mode = 'dead';
     }
     const f = c.fountain;
@@ -264,6 +274,7 @@ export class DungeonModel {
           q.captive.freed = true;
           this.party.questFlags[FLAG_CAPTIVE] = true;
           this.message = `YOU FREE ${q.captive.name}!`;
+          this.sounds.push('level_up');
         }
       }
       if (!q.item.taken && samePoint(q.item, pos)) {
@@ -274,6 +285,7 @@ export class DungeonModel {
           // Carried by whoever has room; the flag counts even if packs are full.
           living(this.party).some((m) => addItem(this.party, m, q.item.itemId).result === 'ok');
           this.message = `YOU TAKE THE ${getItem(q.item.itemId).name.toUpperCase()}!`;
+          this.sounds.push('treasure');
         }
       }
     }
@@ -291,6 +303,7 @@ export class DungeonModel {
       const below = getView(this.dungeon, depth + 1);
       arrive(below, this.party, depth + 1, below.floor.stairsUp);
       this.message = `YOU DESCEND TO FLOOR ${depth + 1}`;
+      this.sounds.push('stairs');
     } else if (this.onStairsUp) {
       if (depth === 1) {
         this.mode = 'confirmExit';
@@ -299,6 +312,7 @@ export class DungeonModel {
       const above = getView(this.dungeon, depth - 1);
       arrive(above, this.party, depth - 1, above.floor.stairsDown ?? above.floor.stairsUp);
       this.message = `YOU CLIMB TO FLOOR ${depth - 1}`;
+      this.sounds.push('stairs');
     } else {
       this.message = 'NO STAIRS HERE';
     }

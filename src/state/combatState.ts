@@ -74,8 +74,14 @@ export class CombatState implements GameState {
       return;
     }
     m.onKey(press);
+    this.playSounds();
     this.timer = 0;
     this.draw();
+  }
+
+  private playSounds(): void {
+    for (const id of this.model.sounds) this.ctx.sound.play(id);
+    this.model.sounds = [];
   }
 
   update(dtMs: number): void {
@@ -86,6 +92,7 @@ export class CombatState implements GameState {
       if (this.timer >= MONSTER_STEP_MS) {
         this.timer = 0;
         m.advance();
+        this.playSounds();
         dirty = true;
       }
     }

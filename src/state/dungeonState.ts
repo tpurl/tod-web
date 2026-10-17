@@ -55,6 +55,7 @@ export class DungeonState implements GameState {
     s.hideAllSprites();
     s.spriteSize = 8;
     s.spriteMagnify = false;
+    this.ctx.sound.music(null);
     this.draw();
   }
 
@@ -71,6 +72,8 @@ export class DungeonState implements GameState {
       return;
     }
     this.model.onKey(press);
+    for (const id of this.model.sounds) this.ctx.sound.play(id);
+    this.model.sounds = [];
     if (this.model.mode === 'exited') {
       this.ctx.machine.change(new PartyReadyState(this.ctx));
       return;

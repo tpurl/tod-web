@@ -18,6 +18,7 @@ export class VictoryState implements GameState {
     s.hideAllSprites();
     s.overlay = null;
     this.ctx.actions.setActions([{ label: 'TITLE', key: 'enter' }]);
+    this.ctx.sound.music('music_victory');
     drawFrame(s, 'VICTORY!', ['ENTER:BACK TO TITLE']);
     const sc = this.ctx.scenario;
     const p = this.ctx.party;

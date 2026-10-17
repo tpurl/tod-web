@@ -23,6 +23,7 @@ export class LevelUpState implements GameState {
     s.hideAllSprites();
     s.overlay = null;
     this.ctx.actions.setActions([{ label: 'CONTINUE', key: 'enter' }]);
+    this.ctx.sound.play('level_up');
     drawFrame(s, 'LEVEL UP!', ['ENTER:CONTINUE']);
     this.gains.slice(0, 8).forEach((g, i) => {
       const row = CONTENT_TOP + i * 2;

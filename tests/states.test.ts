@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
@@ -12,7 +13,16 @@ import { TestState } from '../src/state/testState.ts';
 import { BLINK_MS, TitleState } from '../src/state/titleState.ts';
 
 function app(): AppContext {
-  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null, actions: new RecordingActions(), scenario: null };
+  return {
+    machine: new StateMachine(),
+    screen: new TileScreen(),
+    rng: createRng(7),
+    party: null,
+    dungeon: null,
+    actions: new RecordingActions(),
+    scenario: null,
+    sound: new RecordingSound(),
+  };
 }
 
 function rowText(s: TileScreen, row: number): string {
@@ -56,6 +66,7 @@ describe('states', () => {
     expect(ctx.party?.members[0].classId).toBe('hero');
     k('enter'); // buy the first stock item
     expect(ctx.party?.members[0].inventory.length).toBe(1);
+    expect((ctx.sound as RecordingSound).played).toContain('buy');
     k('back');
     k('enter'); // leave the store
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
