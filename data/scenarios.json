@@ -1,0 +1,23 @@
+{
+  "_note": "Scenarios (schemas/scenario.schema.json). Original stories in the shape of the 1982 game's two modules. Numbers are placeholders. [CALIBRATE]",
+  "scenarios": [
+    {
+      "id": "gold_hunt",
+      "title": "THE GOLD HUNT",
+      "blurb": "A SHORT DUNGEON TO LEARN ON",
+      "intro": "BRING 500 GOLD BACK TO THE SURFACE.",
+      "floors": { "count": 3 },
+      "start": { "gold": 250, "food": 40 },
+      "goal": { "type": "collect_gold", "goldTarget": 500 }
+    },
+    {
+      "id": "lost_king",
+      "title": "THE LOST KING",
+      "blurb": "THE FULL QUEST, FIVE FLOORS",
+      "intro": "FREE KING ALDRIC AND RECOVER THE DAYLIGHT ORB FROM FLOOR 5.",
+      "floors": { "count": 5 },
+      "start": { "gold": 300, "food": 40 },
+      "goal": { "type": "retrieve_and_rescue", "captiveName": "KING ALDRIC", "itemId": "orb", "targetFloor": 5, "guardian": "wraith" }
+    }
+  ]
+}
