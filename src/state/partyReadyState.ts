@@ -36,7 +36,7 @@ export class PartyReadyState implements GameState {
       const row = CONTENT_TOP + 2 + i * 2;
       printHi(s, 1, row, m.name);
       s.print(12, row, `HP ${m.hp.current}/${m.hp.max}`);
-      s.print(23, row, m.hp.current <= 0 ? 'DEAD' : `LEVEL ${m.level}`);
+      s.print(23, row, m.hp.current <= 0 ? 'DISABLED' : `LEVEL ${m.level}`);
       const w = equippedItem(m, 'weapon');
       const a = equippedItem(m, 'armor');
       s.print(3, row + 1, `${w ? w.name.toUpperCase() : 'BARE HANDS'}, ${a ? a.name.toUpperCase() : 'NO ARMOR'}`);

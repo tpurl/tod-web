@@ -116,10 +116,11 @@ describe('exploration', () => {
     expect(p.stepsTaken).toBe(moved);
   });
 
-  it('search chance uses the best searcher, with class and race bonuses', () => {
+  it('search chance is the same for every class; elves get their race bonus', () => {
+    // The manual gives no class a searching edge (rogues avoid traps instead).
     expect(searchChance(party('fighter'))).toBe(SEARCH_BASE);
-    expect(searchChance(party('rogue'))).toBe(SEARCH_BASE + 20);
-    expect(searchChance(party('rogue', 'elf'))).toBe(SEARCH_BASE + 35);
+    expect(searchChance(party('rogue'))).toBe(SEARCH_BASE);
+    expect(searchChance(party('rogue', 'elf'))).toBe(SEARCH_BASE + 15);
   });
 
   it('searching next to a secret door eventually finds it and opens the way', () => {
