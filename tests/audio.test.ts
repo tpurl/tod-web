@@ -4,6 +4,7 @@ import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { CHIP_CLOCK, LOWEST_FREQ, SILENT, Sn76489, attToAmp, dividerFor, freqForDivider } from '../src/engine/audio/sn76489.ts';
 import { SOUNDS, SOUND_IDS, TICK_HZ, duration, noteFreq, parseNotes, renderSound, tune } from '../src/engine/audio/sounds.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
+import { MemorySaveStore } from '../src/engine/storage/saveStore.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
 import { createDungeon, getView } from '../src/game/dungeon/dungeon.ts';
@@ -149,6 +150,7 @@ describe('game sound events', () => {
       actions: new RecordingActions(),
       scenario: null,
       sound,
+      saves: new MemorySaveStore(),
     };
     ctx.machine.change(new TitleState(ctx));
     expect(sound.playing).toBe('music_title');

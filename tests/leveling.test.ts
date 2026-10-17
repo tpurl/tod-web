@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { KeyPress } from '../src/engine/input/keyboard.ts';
 import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
+import { MemorySaveStore } from '../src/engine/storage/saveStore.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
 import { createDungeon } from '../src/game/dungeon/dungeon.ts';
@@ -100,6 +101,7 @@ describe('screens', () => {
       actions: new RecordingActions(),
       scenario: null,
       sound: new RecordingSound(),
+      saves: new MemorySaveStore(),
     };
   }
 
