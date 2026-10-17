@@ -32,8 +32,9 @@ import { OPPOSITE, STEP, roomAt, samePoint, type Dir, type Point } from './floor
  * Stepping on a square resolves what is there: treasure is picked up
  * (unless monsters guard it), traps spring, fountains wait for D, and on
  * the quest floor the captive and quest item are taken. Walking into a
- * room with hostile monsters starts a fight (mode 'combat'). Every step
- * may eat a ration.
+ * room with hostile monsters, or bumping into one (even from a doorway it
+ * blocks), starts a fight (mode 'combat'). Peaceful monsters step aside.
+ * Every step may eat a ration.
  *
  * Taking the up stairs on floor 1 asks before leaving; leaving with the
  * scenario's goal met wins the game (mode 'won').
@@ -119,8 +120,20 @@ export class DungeonModel {
       const blocker = this.monsterAt(target.x, target.y);
       if (blocker) {
         if (!this.view3d) this.party.facing = dir;
-        this.message = `${groupName(getMonster(blocker.monsterId), 1)} BLOCKS THE WAY`;
-        return;
+        const c = contentsAt(this.view, target) as RoomContents;
+        const room = roomAt(this.view.floor, target.x, target.y);
+        if (!c.peaceful && room) {
+          // Bumping a hostile monster starts the fight, even from a doorway it is blocking.
+          this.mode = 'combat';
+          this.combat = { roomId: room.id, entry: { ...this.party.position }, retreat: { ...this.party.position }, retreatFacing: OPPOSITE[dir] };
+          return;
+        }
+        // A peaceful monster steps aside so it can never seal a doorway.
+        if (!this.stepAside(c, blocker)) {
+          this.message = `${groupName(getMonster(blocker.monsterId), 1)} BLOCKS THE WAY`;
+          return;
+        }
+        this.message = `THE ${getMonster(blocker.monsterId).name.toUpperCase()} STEPS ASIDE`;
       }
       const roomBefore = roomAt(this.view.floor, this.party.position.x, this.party.position.y);
       const from = { ...this.party.position };
@@ -132,6 +145,7 @@ export class DungeonModel {
         return;
       }
       const roomNow = roomAt(this.view.floor, this.party.position.x, this.party.position.y);
+      const asideMsg = this.message;
       if (roomNow && roomNow !== roomBefore) {
         const c = this.view.contents[roomNow.id];
         if (!c.peaceful && aliveMonsters(c).length > 0) {
@@ -139,7 +153,7 @@ export class DungeonModel {
           this.combat = { roomId: roomNow.id, entry: { ...this.party.position }, retreat: from, retreatFacing: OPPOSITE[dir] };
           return;
         }
-        this.message = this.entryMessage(c);
+        this.message = this.entryMessage(c) || asideMsg;
       }
       this.resolveSquare();
       const hunger = eatIfDue(this.party);
@@ -183,6 +197,28 @@ export class DungeonModel {
   get atFountain(): boolean {
     const f = this.here?.fountain;
     return !!f && !f.used && samePoint(f, this.party.position);
+  }
+
+  /** Moves a peaceful monster to the free room square farthest from the party. */
+  private stepAside(c: RoomContents, m: { x: number; y: number }): boolean {
+    const room = this.view.floor.rooms[c.roomId];
+    const p = this.party.position;
+    let best: { x: number; y: number } | null = null;
+    let bestD = -1;
+    for (let y = room.y; y < room.y + room.h; y++) {
+      for (let x = room.x; x < room.x + room.w; x++) {
+        if (this.monsterAt(x, y) || samePoint({ x, y }, p) || samePoint({ x, y }, m)) continue;
+        const d = Math.abs(x - p.x) + Math.abs(y - p.y);
+        if (d > bestD) {
+          bestD = d;
+          best = { x, y };
+        }
+      }
+    }
+    if (!best) return false;
+    m.x = best.x;
+    m.y = best.y;
+    return true;
   }
 
   private monsterAt(x: number, y: number) {

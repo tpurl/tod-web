@@ -191,17 +191,57 @@ describe('DungeonModel with room contents', () => {
     throw new Error('no matching seed');
   }
 
-  it('monsters block their squares', () => {
+  it('bumping a hostile monster starts a fight', () => {
     const d = findView((v) => v.contents.some((c) => c.monsters.length > 0));
     const p = party('fighter');
     const m = new DungeonModel(d, p, createRng(1));
     m.onKey(K('char', 'V')); // map controls
-    const mon = m.view.contents.find((c) => c.monsters.length)!.monsters[0];
-    const dir = placeBeside(m, mon)!;
+    const c = m.view.contents.find((x) => x.monsters.length)!;
+    const dir = placeBeside(m, c.monsters[0])!;
     const before = { ...p.position };
     m.onKey(K(({ n: 'up', e: 'right', s: 'down', w: 'left' } as const)[dir]));
-    expect(p.position).toEqual(before);
-    expect(m.message.endsWith('BLOCKS THE WAY')).toBe(true);
+    expect(m.mode).toBe('combat');
+    expect(m.combat?.roomId).toBe(c.roomId);
+    expect(m.combat?.retreat).toEqual(before);
+  });
+
+  it('a monster standing just inside a door can be fought from the doorway', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const d = createDungeon(seed);
+      const v = getView(d, 1);
+      for (const door of v.floor.doors) {
+        if (door.kind !== 'normal') continue;
+        const inside = { x: door.x + STEP[door.side].dx, y: door.y + STEP[door.side].dy };
+        const c = v.contents[door.roomId];
+        const mon = c.monsters.find((x) => samePoint(x, inside));
+        if (!mon) continue;
+        const p = party('fighter');
+        const m = new DungeonModel(d, p, createRng(1));
+        m.view3d = false;
+        p.position = { x: door.x, y: door.y };
+        m.onKey(K(({ n: 'up', e: 'right', s: 'down', w: 'left' } as const)[door.side]));
+        expect(m.mode).toBe('combat');
+        expect(m.combat?.entry).toEqual({ x: door.x, y: door.y });
+        return;
+      }
+    }
+    throw new Error('no blocked doorway found');
+  });
+
+  it('peaceful monsters step aside instead of blocking', () => {
+    const d = findView((v) => v.contents.some((c) => c.monsters.length > 0 && c.monsters.length < 6));
+    const p = party('fighter');
+    const m = new DungeonModel(d, p, createRng(1));
+    m.onKey(K('char', 'V'));
+    const c = m.view.contents.find((x) => x.monsters.length > 0 && x.monsters.length < 6)!;
+    c.peaceful = true;
+    const mon = c.monsters[0];
+    const spot = { x: mon.x, y: mon.y };
+    const dir = placeBeside(m, mon)!;
+    m.onKey(K(({ n: 'up', e: 'right', s: 'down', w: 'left' } as const)[dir]));
+    expect(m.mode).toBe('explore');
+    expect(p.position).toEqual(spot);
+    expect(samePoint(mon, spot)).toBe(false);
   });
 
   it('walking onto unguarded treasure picks it up', () => {
