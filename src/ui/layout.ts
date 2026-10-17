@@ -49,3 +49,17 @@ export function rjust(n: number | string, width: number): string {
 export function signed(n: number): string {
   return n === 0 ? '' : n > 0 ? `+${n}` : String(n);
 }
+
+/** Splits a message into lines of at most `width` characters at spaces. */
+export function wrap(text: string, width = COLS): string[] {
+  const out: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    if (line && line.length + 1 + word.length > width) {
+      out.push(line);
+      line = word;
+    } else line = line ? `${line} ${word}` : word;
+  }
+  if (line) out.push(line);
+  return out;
+}

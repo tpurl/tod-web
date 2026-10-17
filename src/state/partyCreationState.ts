@@ -1,14 +1,14 @@
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import type { TileScreen } from '../engine/render/tileScreen.ts';
 import { NAME_MAX, statBonus } from '../game/party/character.ts';
-import { DEFAULT_START, MAX_PARTY } from '../game/party/party.ts';
+import { MAX_PARTY } from '../game/party/party.ts';
 import { PartyBuilder } from '../game/party/partyBuilder.ts';
 import { STAT_ABBR, STAT_KEYS, getClass, getRace } from '../game/party/rules.ts';
 import { CONTENT_TOP, drawFrame, menuItem, rjust, signed } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { StoreState } from './storeState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
-import { TitleState } from './titleState.ts';
+import { ScenarioSelectState } from './scenarioSelectState.ts';
 
 export const CURSOR_BLINK_MS = 400;
 const OK_HINT = 'UP/DOWN:CHOOSE   ENTER:OK';
@@ -22,7 +22,7 @@ export class PartyCreationState implements GameState {
 
   constructor(ctx: AppContext) {
     this.ctx = ctx;
-    this.builder = new PartyBuilder(ctx.rng);
+    this.builder = new PartyBuilder(ctx.rng, { start: ctx.scenario?.start });
   }
 
   enter(): void {
@@ -35,7 +35,7 @@ export class PartyCreationState implements GameState {
   onKey(press: KeyPress): void {
     this.builder.onKey(press);
     if (this.builder.step === 'cancelled') {
-      this.ctx.machine.change(new TitleState(this.ctx));
+      this.ctx.machine.change(new ScenarioSelectState(this.ctx));
       return;
     }
     if (this.builder.step === 'done' && this.builder.party) {
@@ -216,6 +216,6 @@ export class PartyCreationState implements GameState {
       s.print(2, row + 1, STAT_KEYS.map((k) => `${STAT_ABBR[k]} ${m.stats[k]}`).join('  '));
     });
     const row = CONTENT_TOP + 2 + MAX_PARTY * 3;
-    s.print(0, row, `GOLD ${DEFAULT_START.gold}    FOOD ${DEFAULT_START.food}`);
+    s.print(0, row, `GOLD ${b.start.gold}    FOOD ${b.start.food}`);
   }
 }

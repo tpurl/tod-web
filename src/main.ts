@@ -34,7 +34,7 @@ window.addEventListener('touchstart', () => touch.show(), { once: true, passive:
 
 const machine = new StateMachine();
 const actions = new ActionBar(actionsEl, (press) => keyboard.press(press));
-const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions };
+const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions, scenario: null };
 
 machine.change(new TitleState(ctx));
 canvas.focus();

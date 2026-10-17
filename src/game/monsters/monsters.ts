@@ -22,6 +22,17 @@ export interface MonsterDef {
   groupSize: string;
   behavior: Behavior;
   specials: string[];
+  /** Weighted outcomes when the party tries to talk; empty means it won't listen. */
+  talk: TalkOption[];
+}
+
+export type TalkOutcome = 'pass' | 'demand_gold' | 'give_hint' | 'attack';
+
+export interface TalkOption {
+  weight: number;
+  outcome: TalkOutcome;
+  gold?: string;
+  message?: string;
 }
 
 /** Longest name that fits messages like "3 CAVE SPIDERS!". */
@@ -63,6 +74,24 @@ export function validateMonsters(raw: unknown, knownPatterns: readonly string[])
       groupSize: String(m.groupSize),
       behavior: m.behavior as Behavior,
       specials: (m.specials as string[]) ?? [],
+      talk: validateTalk(m.talk, id),
+    };
+  });
+}
+
+const OUTCOMES: readonly TalkOutcome[] = ['pass', 'demand_gold', 'give_hint', 'attack'];
+
+function validateTalk(raw: unknown, id: string): TalkOption[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) throw new Error(`monsters.json: talk on ${id} must be a list`);
+  return raw.map((t: Record<string, unknown>) => {
+    if (!OUTCOMES.includes(t.outcome as TalkOutcome)) throw new Error(`monsters.json: bad talk outcome on ${id}`);
+    if (t.gold) parseDice(String(t.gold));
+    return {
+      weight: Math.max(1, Number(t.weight ?? 1)),
+      outcome: t.outcome as TalkOutcome,
+      gold: t.gold ? String(t.gold) : undefined,
+      message: t.message ? String(t.message) : undefined,
     };
   });
 }

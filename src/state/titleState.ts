@@ -4,7 +4,7 @@ import { COLS, ROWS } from '../engine/render/tileScreen.ts';
 import { bigTextWidth, drawBigText } from '../ui/bigText.ts';
 import { CODE, loadUiTiles } from '../ui/tiles.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
-import { PartyCreationState } from './partyCreationState.ts';
+import { ScenarioSelectState } from './scenarioSelectState.ts';
 import { TestState } from './testState.ts';
 
 export const BLINK_MS = 500;
@@ -43,7 +43,7 @@ export class TitleState implements GameState {
     drawBigText(s, Math.floor((COLS - bigTextWidth(title)) / 2), 3, title, CODE.solid);
     s.printCentered(12, 'A DUNGEON ADVENTURE');
     s.printCentered(18, 'T:DISPLAY TEST');
-    s.printCentered(20, 'WORKING TITLE  M6 BUILD');
+    s.printCentered(20, 'WORKING TITLE  M9 BUILD');
 
     this.ctx.actions.setActions([{ label: 'DISPLAY TEST', key: 'char:T' }]);
     this.blinkTimer = 0;
@@ -52,7 +52,7 @@ export class TitleState implements GameState {
   }
 
   onKey(press: KeyPress): void {
-    if (press.key === 'enter') this.ctx.machine.change(new PartyCreationState(this.ctx));
+    if (press.key === 'enter') this.ctx.machine.change(new ScenarioSelectState(this.ctx));
     else if (press.key === 'char' && press.char === 'T') this.ctx.machine.change(new TestState(this.ctx));
   }
 

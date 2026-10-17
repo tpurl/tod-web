@@ -9,7 +9,7 @@ import {
   type Character,
   type NameProblem,
 } from './character.ts';
-import { MAX_PARTY, MIN_PARTY, createParty, type Party } from './party.ts';
+import { DEFAULT_START, MAX_PARTY, MIN_PARTY, createParty, type Party } from './party.ts';
 import { classesForPartySize, racesForClass, type CharacterClass, type ClassId, type Race, type Stats } from './rules.ts';
 
 /**
@@ -53,11 +53,14 @@ export class PartyBuilder {
   message = '';
   party: Party | null = null;
 
+  /** Starting purse and rations for the new party. */
+  readonly start: { gold: number; food: number };
   private readonly rng: Rng;
 
-  constructor(rng: Rng, opts: { racesEnabled?: boolean } = {}) {
+  constructor(rng: Rng, opts: { racesEnabled?: boolean; start?: { gold: number; food: number } } = {}) {
     this.rng = rng;
     this.racesEnabled = opts.racesEnabled ?? true;
+    this.start = opts.start ?? { ...DEFAULT_START };
   }
 
   /** 1-based number of the character being made. */
@@ -198,7 +201,7 @@ export class PartyBuilder {
 
   private onReview(p: KeyPress): void {
     if (p.key === 'enter') {
-      this.party = createParty(this.members, { racesEnabled: this.racesEnabled });
+      this.party = createParty(this.members, { racesEnabled: this.racesEnabled, ...this.start });
       this.step = 'done';
     } else if (p.key === 'back') {
       this.previousMember();

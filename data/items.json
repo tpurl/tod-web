@@ -14,6 +14,7 @@
     { "id": "rations", "name": "Rations", "kind": "food", "price": 2, "stackable": true, "effect": { "type": "food", "amount": "1d1+9" } },
     { "id": "healing_potion", "name": "Healing Potion", "unidentifiedName": "Red Potion", "kind": "potion", "price": 30, "stackable": true, "effect": { "type": "heal", "amount": "2d6" }, "rarity": 10 },
     { "id": "map_scroll", "name": "Map Scroll", "unidentifiedName": "Old Scroll", "kind": "scroll", "price": 60, "effect": { "type": "reveal_map" }, "rarity": 4 },
+    { "id": "orb", "name": "Daylight Orb", "kind": "quest", "price": 0, "sellable": false },
     { "id": "ring_of_seeing", "name": "Ring of Seeing", "unidentifiedName": "Silver Ring", "kind": "ring", "price": 200, "effect": { "type": "reveal_secrets", "passive": true }, "depth": { "min": 3, "max": 10 }, "rarity": 1 }
   ]
 }

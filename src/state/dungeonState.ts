@@ -4,6 +4,7 @@ import { COLOR } from '../engine/render/palette.ts';
 import { renderRoom, roomCellCenter } from '../engine/render/roomRenderer.ts';
 import { COLS } from '../engine/render/tileScreen.ts';
 import { createDungeon, isExplored } from '../game/dungeon/dungeon.ts';
+import { questSpec } from '../game/scenario/scenarios.ts';
 import { corridorSlices } from '../game/dungeon/corridorView.ts';
 import { DungeonModel } from '../game/dungeon/dungeonModel.ts';
 import { CELL, cellAt, doorIndexAt, roomAt, samePoint } from '../game/dungeon/floor.ts';
@@ -13,8 +14,11 @@ import { PARTY_SPRITE, PARTY_SPRITE_16, MAP_TILE, loadMapTiles, loadPartySprites
 import { loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
 import { MESSAGE_ROW, HINT_ROWS } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
+import { CombatState } from './combatState.ts';
 import { GameOverState } from './gameOverState.ts';
+import { VictoryState } from './victoryState.ts';
 import { PartyReadyState } from './partyReadyState.ts';
+import { PartyStatusState } from './partyStatusState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 
 /** The map occupies rows 1..20, columns 1..30: one floor square per tile. */
@@ -30,11 +34,16 @@ export class DungeonState implements GameState {
   readonly model: DungeonModel;
   private readonly ctx: AppContext;
 
-  constructor(ctx: AppContext) {
+  /** resume: come back to where the party already is (after a fight) instead of entering at floor 1. */
+  constructor(ctx: AppContext, opts: { resume?: boolean; message?: string } = {}) {
     this.ctx = ctx;
     if (!ctx.party) throw new Error('DungeonState needs a party');
-    if (!ctx.dungeon) ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff));
-    this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng);
+    if (!ctx.dungeon) {
+      const sc = ctx.scenario;
+      ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff), sc?.floors, sc ? questSpec(sc) : null);
+    }
+    this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng, { enter: !opts.resume, scenario: ctx.scenario });
+    if (opts.message) this.model.message = opts.message;
   }
 
   enter(): void {
@@ -57,13 +66,25 @@ export class DungeonState implements GameState {
   }
 
   onKey(press: KeyPress): void {
+    if (press.key === 'char' && press.char === 'P' && this.model.mode === 'explore') {
+      this.ctx.machine.change(new PartyStatusState(this.ctx, () => new DungeonState(this.ctx, { resume: true })));
+      return;
+    }
     this.model.onKey(press);
     if (this.model.mode === 'exited') {
       this.ctx.machine.change(new PartyReadyState(this.ctx));
       return;
     }
+    if (this.model.mode === 'won') {
+      this.ctx.machine.change(new VictoryState(this.ctx));
+      return;
+    }
     if (this.model.mode === 'dead') {
       this.ctx.machine.change(new GameOverState(this.ctx, this.model.message));
+      return;
+    }
+    if (this.model.mode === 'combat' && this.model.combat) {
+      this.ctx.machine.change(new CombatState(this.ctx, this.model.combat));
       return;
     }
     this.draw();
@@ -117,7 +138,7 @@ export class DungeonState implements GameState {
       });
     }
 
-    const msg = m.mode === 'confirmExit' ? 'LEAVE THE DUNGEON?' : m.message;
+    const msg = m.mode === 'confirmExit' ? m.exitPrompt : m.message;
     if (msg) printHi(s, Math.max(0, Math.floor((COLS - msg.length) / 2)), MESSAGE_ROW + 1, msg);
     const hints =
       m.mode === 'confirmExit'
@@ -132,6 +153,7 @@ export class DungeonState implements GameState {
         : [
             { label: m.view3d ? 'MAP' : '3D VIEW', key: 'char:V' },
             { label: 'SEARCH', key: 'char:S' },
+            { label: 'PARTY', key: 'char:P' },
             ...(m.atFountain ? [{ label: 'DRINK', key: 'char:D' }] : []),
           ],
     );

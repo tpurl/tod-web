@@ -5,13 +5,14 @@ import { createRng } from '../src/engine/rng.ts';
 import { DungeonState } from '../src/state/dungeonState.ts';
 import { PartyCreationState } from '../src/state/partyCreationState.ts';
 import { PartyReadyState } from '../src/state/partyReadyState.ts';
+import { ScenarioSelectState } from '../src/state/scenarioSelectState.ts';
 import { StateMachine, type AppContext } from '../src/state/stateMachine.ts';
 import { StoreState, windowStart } from '../src/state/storeState.ts';
 import { TestState } from '../src/state/testState.ts';
 import { BLINK_MS, TitleState } from '../src/state/titleState.ts';
 
 function app(): AppContext {
-  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null, actions: new RecordingActions() };
+  return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(7), party: null, dungeon: null, actions: new RecordingActions(), scenario: null };
 }
 
 function rowText(s: TileScreen, row: number): string {
@@ -21,14 +22,18 @@ function rowText(s: TileScreen, row: number): string {
 }
 
 describe('states', () => {
-  it('title blinks its prompt; Enter starts party creation, T opens the test screen', () => {
+  it('title blinks its prompt; Enter chooses a scenario, then party creation; T opens the test screen', () => {
     const ctx = app();
     ctx.machine.change(new TitleState(ctx));
     expect(rowText(ctx.screen, 16)).toContain('PRESS ENTER');
     ctx.machine.update(BLINK_MS);
     expect(rowText(ctx.screen, 16)).not.toContain('PRESS ENTER');
     ctx.machine.onKey({ key: 'enter', repeat: false });
+    expect(ctx.machine.state).toBeInstanceOf(ScenarioSelectState);
+    ctx.machine.onKey({ key: 'down', repeat: false });
+    ctx.machine.onKey({ key: 'enter', repeat: false });
     expect(ctx.machine.state).toBeInstanceOf(PartyCreationState);
+    expect(ctx.scenario?.id).toBe('lost_king');
     ctx.machine.change(new TitleState(ctx));
     ctx.machine.onKey({ key: 'char', char: 'T', repeat: false });
     expect(ctx.machine.state).toBeInstanceOf(TestState);
@@ -62,7 +67,7 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(DungeonState);
     expect(ctx.party?.depth).toBe(1);
     expect(ctx.screen.overlay).not.toBeNull(); // starts in the 3D view
-    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH']);
+    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH', 'PARTY']);
     k('enter'); // standing on the up stairs: asks to leave
     k('enter');
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);
@@ -77,9 +82,11 @@ describe('states', () => {
     expect(windowStart(19, 20, 13)).toBe(7);
   });
 
-  it('Back from party size returns to the title', () => {
+  it('Back from party size returns to scenario choice, then the title', () => {
     const ctx = app();
     ctx.machine.change(new PartyCreationState(ctx));
+    ctx.machine.onKey({ key: 'back', repeat: false });
+    expect(ctx.machine.state).toBeInstanceOf(ScenarioSelectState);
     ctx.machine.onKey({ key: 'back', repeat: false });
     expect(ctx.machine.state).toBeInstanceOf(TitleState);
   });

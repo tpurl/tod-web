@@ -137,6 +137,28 @@ export const MONSTER_ART: Readonly<Record<(typeof MONSTER_PATTERNS)[number], rea
   ],
 };
 
+/** Party member figure for the combat view (codes 60..63). */
+// prettier-ignore
+export const ADVENTURER_ART: readonly string[] = [
+  '......###.......',
+  '.....#####......',
+  '.....#.#.#......',
+  '.....#####...#..',
+  '......###....#..',
+  '....#######..#..',
+  '...#.#####.#.#..',
+  '..#..#####..###.',
+  '..#..#####...#..',
+  '.....#####......',
+  '.....##.##......',
+  '.....##.##......',
+  '.....##.##......',
+  '....###.###.....',
+  '................',
+  '................',
+];
+export const ADVENTURER_SPRITE = 60;
+
 export const MONSTER_SPRITE_BASE = 32;
 
 export function monsterSpriteCode(pattern: string): number {
@@ -147,4 +169,5 @@ export function monsterSpriteCode(pattern: string): number {
 
 export function loadMonsterSprites(screen: TileScreen): void {
   for (const name of MONSTER_PATTERNS) screen.defineSprite16(monsterSpriteCode(name), sprite16(MONSTER_ART[name]));
+  screen.defineSprite16(ADVENTURER_SPRITE, sprite16(ADVENTURER_ART));
 }

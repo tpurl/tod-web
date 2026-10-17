@@ -1,10 +1,11 @@
 import type { Rng } from '../../engine/rng.ts';
 import { roll } from '../dice.ts';
 import type { Floor, Point, Room } from '../dungeon/floor.ts';
-import { samePoint } from '../dungeon/floor.ts';
+import { reachable, samePoint } from '../dungeon/floor.ts';
 import { addItem } from '../items/inventory.ts';
 import { ITEMS, getItem, type ItemDef } from '../items/items.ts';
-import { monstersForDepth } from '../monsters/monsters.ts';
+import { getMonster, monstersForDepth } from '../monsters/monsters.ts';
+import type { QuestSpec } from '../scenario/scenarios.ts';
 import type { Character } from '../party/character.ts';
 import type { Party } from '../party/party.ts';
 import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
@@ -12,7 +13,8 @@ import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
 /**
  * What is in each room (DESIGN.md section 7.3), generated from the floor's
  * seed, and the rules for treasure, fountains, and traps. Monsters are
- * placed and shown here; fighting them is milestone 7.
+ * placed here; fighting them is in game/combat. On a scenario's quest floor
+ * one room also holds the captive and the quest item.
  *
  * Every probability and amount is a placeholder until calibrated against
  * the original. [CALIBRATE]
@@ -52,8 +54,17 @@ export interface Trap {
   sprung: boolean;
 }
 
+/** The scenario's captive and quest item, placed together in one guarded room on the quest floor. */
+export interface QuestObjects {
+  captive: { x: number; y: number; name: string; freed: boolean };
+  item: { x: number; y: number; itemId: string; taken: boolean };
+}
+
 export interface RoomContents {
   roomId: number;
+  quest?: QuestObjects;
+  /** Set when the party talked its way past: the monsters stay but won't fight. */
+  peaceful: boolean;
   monsters: MonsterInstance[];
   treasure: Treasure | null;
   fountain: Fountain | null;
@@ -93,13 +104,13 @@ export function treasureItem(rng: Rng, depth: number, items: readonly ItemDef[] 
   return null;
 }
 
-export function populateFloor(floor: Floor, rng: Rng): RoomContents[] {
+export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = null): RoomContents[] {
   const upRoom = floor.rooms.find(
     (r) => floor.stairsUp.x >= r.x && floor.stairsUp.x < r.x + r.w && floor.stairsUp.y >= r.y && floor.stairsUp.y < r.y + r.h,
   );
   const candidates = monstersForDepth(floor.depth);
-  return floor.rooms.map((room) => {
-    const c: RoomContents = { roomId: room.id, monsters: [], treasure: null, fountain: null, trap: null };
+  const contents = floor.rooms.map((room) => {
+    const c: RoomContents = { roomId: room.id, peaceful: false, monsters: [], treasure: null, fountain: null, trap: null };
     // The room you arrive in is always safe.
     if (room === upRoom) return c;
     const cells = freeCells(room, floor);
@@ -134,6 +145,48 @@ export function populateFloor(floor: Floor, rng: Rng): RoomContents[] {
     }
     return c;
   });
+  if (quest && quest.floor === floor.depth) placeQuest(floor, contents, quest, upRoom, rng);
+  return contents;
+}
+
+/**
+ * Puts the captive and the quest item in the room farthest from the
+ * arrival stairs that can be reached without finding a secret door, clears
+ * its other features, and sets a guardian group.
+ */
+function placeQuest(floor: Floor, contents: RoomContents[], quest: QuestSpec, upRoom: Room | undefined, rng: Rng): void {
+  const up = floor.stairsUp;
+  const open = reachable(floor, up);
+  const byDistance = (rooms: Room[]) =>
+    rooms.sort((a, b) => Math.abs(b.x - up.x) + Math.abs(b.y - up.y) - (Math.abs(a.x - up.x) + Math.abs(a.y - up.y)));
+  const others = floor.rooms.filter((r) => r !== upRoom && r.w * r.h >= 6);
+  // Prefer a room with no secret door in the way; fall back to any big enough room.
+  const far = byDistance(others.filter((r) => open[r.y * floor.width + r.x] === 1))[0] ?? byDistance(others)[0];
+  if (!far) return;
+  const cells = freeCells(far, floor);
+  const captive = take(rng, cells);
+  const item = take(rng, cells);
+  if (!captive || !item) return;
+  const def = getMonster(quest.guardian);
+  const monsters: MonsterInstance[] = [];
+  for (let i = 0; i < 2; i++) {
+    const p = take(rng, cells);
+    if (!p) break;
+    const hp = Math.max(1, roll(def.hp, rng));
+    monsters.push({ monsterId: def.id, hp, maxHp: hp, x: p.x, y: p.y });
+  }
+  contents[far.id] = {
+    roomId: far.id,
+    peaceful: false,
+    monsters,
+    treasure: null,
+    fountain: null,
+    trap: null,
+    quest: {
+      captive: { ...captive, name: quest.captiveName, freed: false },
+      item: { ...item, itemId: quest.itemId, taken: false },
+    },
+  };
 }
 
 export function aliveMonsters(c: RoomContents): MonsterInstance[] {
@@ -170,8 +223,10 @@ export function hurt(c: Character, amount: number): number {
   return before - c.hp.current;
 }
 
+/** Restores HP (never past max) and cures poison. Does nothing for the dead. */
 export function heal(c: Character, amount: number): number {
   if (c.hp.current <= 0) return 0;
+  c.status = c.status.filter((s) => s !== 'poisoned');
   const before = c.hp.current;
   c.hp.current = Math.min(c.hp.max, c.hp.current + amount);
   return c.hp.current - before;
