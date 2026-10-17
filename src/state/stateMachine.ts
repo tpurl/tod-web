@@ -7,6 +7,7 @@ import type { Rng } from '../engine/rng.ts';
 import type { Dungeon } from '../game/dungeon/dungeon.ts';
 import type { Party } from '../game/party/party.ts';
 import type { ScenarioDef } from '../game/scenario/scenarios.ts';
+import type { DifficultyId } from '../game/scenario/difficulty.ts';
 
 /**
  * A screen of the game. TileScreen is retained-mode: states write tiles when
@@ -54,6 +55,8 @@ export interface AppContext {
   actions: ActionSink;
   /** The adventure being played, chosen before party creation. */
   scenario: ScenarioDef | null;
+  /** Easiest, medium, or hardest (manual p.20), chosen with the scenario; medium if unset. */
+  difficulty?: DifficultyId;
   /** Sound effects and music. */
   sound: SoundSink;
   /** Save game slots. */
