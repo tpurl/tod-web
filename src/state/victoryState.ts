@@ -28,7 +28,7 @@ export class VictoryState implements GameState {
     if (p) {
       s.print(2, CONTENT_TOP + 6, 'HEROES OF THE REALM:');
       p.members.forEach((m, i) => {
-        s.print(4, CONTENT_TOP + 8 + i, `${m.name.padEnd(11)}LEVEL ${m.level}${m.hp.current <= 0 ? '  (FALLEN)' : ''}`);
+        s.print(4, CONTENT_TOP + 8 + i, `${m.name.padEnd(11)}LEVEL ${m.level}${m.hp.current <= 0 ? '  (DISABLED)' : ''}`);
       });
       s.print(2, CONTENT_TOP + 13, `GOLD ${p.gold}   STEPS ${p.stepsTaken}`);
     }

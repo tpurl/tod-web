@@ -64,7 +64,7 @@ export class PartyStatusState implements GameState {
     const sp = c.spellPoints ? `SP ${c.spellPoints.current}/${c.spellPoints.max}` : '';
     s.print(2, 6, `HP ${c.hp.current}/${c.hp.max}`);
     s.print(16, 6, sp);
-    const status = c.hp.current <= 0 ? 'DEAD' : c.status.includes('poisoned') ? 'POISONED' : '';
+    const status = c.hp.current <= 0 ? 'DISABLED' : c.status.includes('poisoned') ? 'POISONED' : '';
     if (status) printHi(s, 2, 7, status);
 
     STAT_KEYS.forEach((k, i) => {
