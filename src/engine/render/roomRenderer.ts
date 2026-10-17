@@ -6,9 +6,9 @@ import { COLOR } from './palette.ts';
 
 /**
  * Close-up, top-down view of the room the party is standing in (room and
- * its walls, scaled to fill the view), with its treasure, fountain, and
- * any trap the party knows about. Monsters are sprites drawn on top by the
- * dungeon screen; this is also where combat will take place.
+ * its walls, scaled to fill the view), with its treasure, fountain, any
+ * trap the party knows about, and on the quest floor the captive and the
+ * quest item. Monsters are sprites drawn on top by the screens.
  */
 export const ROOM_COLORS = {
   background: COLOR.black,
@@ -24,6 +24,10 @@ export const ROOM_COLORS = {
   water: COLOR.lightBlue,
   basin: COLOR.gray,
   trap: COLOR.mediumRed,
+  captive: COLOR.white,
+  crown: COLOR.lightYellow,
+  orb: COLOR.magenta,
+  orbShine: COLOR.white,
 } as const;
 
 const MAX_CELL = 24;
@@ -94,6 +98,24 @@ function drawTrap(cv: Canvas8, x: number, y: number, s: number): void {
   }
 }
 
+function drawCaptive(cv: Canvas8, x: number, y: number, s: number): void {
+  const u = Math.max(1, Math.floor(s / 8));
+  const cx = x + Math.floor(s / 2);
+  cv.rect(cx - 2 * u, y + u, cx + u, y + 2 * u, ROOM_COLORS.crown);
+  cv.rect(cx - 2 * u, y + 3 * u, cx + u, y + 4 * u, ROOM_COLORS.captive);
+  cv.rect(cx - 3 * u, y + 5 * u, cx + 2 * u, y + s - 2 * u, ROOM_COLORS.captive);
+}
+
+function drawOrb(cv: Canvas8, x: number, y: number, s: number): void {
+  const c = Math.floor(s / 2);
+  const r = Math.floor(s / 4);
+  for (let dy = -r; dy <= r; dy++) {
+    const w = r - Math.abs(dy);
+    cv.rect(x + c - w, y + c + dy, x + c + w, y + c + dy, ROOM_COLORS.orb);
+  }
+  cv.rect(x + c - 1, y + c - 2, x + c, y + c - 1, ROOM_COLORS.orbShine);
+}
+
 function drawStairs(cv: Canvas8, x: number, y: number, s: number, color: number): void {
   drawFloor(cv, x, y, s);
   const step = Math.max(2, Math.floor(s / 4));
@@ -136,6 +158,14 @@ export function renderRoom(v: FloorView, room: Room): Canvas8 {
   if (c?.treasure && !c.treasure.taken) {
     const { px, py } = at(c.treasure);
     drawChest(cv, px, py, L.cell);
+  }
+  if (c?.quest && !c.quest.captive.freed) {
+    const { px, py } = at(c.quest.captive);
+    drawCaptive(cv, px, py, L.cell);
+  }
+  if (c?.quest && !c.quest.item.taken) {
+    const { px, py } = at(c.quest.item);
+    drawOrb(cv, px, py, L.cell);
   }
   return cv;
 }

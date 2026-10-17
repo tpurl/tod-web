@@ -4,6 +4,7 @@ import type { TileScreen } from '../engine/render/tileScreen.ts';
 import type { Rng } from '../engine/rng.ts';
 import type { Dungeon } from '../game/dungeon/dungeon.ts';
 import type { Party } from '../game/party/party.ts';
+import type { ScenarioDef } from '../game/scenario/scenarios.ts';
 
 /**
  * A screen of the game. TileScreen is retained-mode: states write tiles when
@@ -49,4 +50,6 @@ export interface AppContext {
   dungeon: Dungeon | null;
   /** Clickable buttons under the game for the current screen's commands. */
   actions: ActionSink;
+  /** The adventure being played, chosen before party creation. */
+  scenario: ScenarioDef | null;
 }
