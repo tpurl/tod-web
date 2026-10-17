@@ -52,6 +52,16 @@ describe('item data', () => {
     expect(() => validateStore({ sellRate: 2, stock: [{ item: 'sword' }] })).toThrow();
     expect(() => validateStore({ stock: [{ item: 'nope' }] })).toThrow();
   });
+
+  it('ranged weapon prices follow the manual (p.22)', () => {
+    expect(buyPrice(entry('sling'))).toBe(10);
+    expect(buyPrice(entry('short_bow'))).toBe(30);
+    expect(buyPrice(entry('arrows'))).toBe(20);
+    expect(entry('arrows').bundle).toBe(20);
+    expect(buyPrice(entry('crossbow'))).toBe(50);
+    expect(buyPrice(entry('quarrels'))).toBe(20);
+    expect(entry('quarrels').bundle).toBe(10);
+  });
 });
 
 describe('equipment rules', () => {
@@ -59,6 +69,7 @@ describe('equipment rules', () => {
     const wiz = member('w', 'wizard');
     const rog = member('r', 'rogue');
     expect(canUse(wiz, getItem('dagger'))).toBe(true);
+    expect(canUse(wiz, getItem('sling'))).toBe(true);
     expect(canUse(wiz, getItem('sword'))).toBe(false);
     expect(canUse(wiz, getItem('leather_armor'))).toBe(false);
     expect(canUse(rog, getItem('leather_armor'))).toBe(true);
@@ -95,9 +106,18 @@ describe('equipment rules', () => {
     addItem(p, r, 'arrows', 20);
     expect(r.inventory).toHaveLength(1);
     expect(r.inventory[0].quantity).toBe(40);
-    for (let i = 1; i < MAX_ITEMS; i++) expect(addItem(p, r, 'dagger').result).toBe('ok');
-    expect(addItem(p, r, 'dagger').result).toBe('full');
+    for (let i = 1; i < MAX_ITEMS; i++) expect(addItem(p, r, 'robe').result).toBe('ok');
+    expect(addItem(p, r, 'robe').result).toBe('full');
     expect(addItem(p, r, 'arrows', 5).result).toBe('ok');
+  });
+
+  it('a character carries at most two weapons (manual p.22)', () => {
+    const p = party('fighter');
+    const f = p.members[0];
+    expect(addItem(p, f, 'sword').result).toBe('ok');
+    expect(addItem(p, f, 'short_bow').result).toBe('ok');
+    expect(addItem(p, f, 'dagger').result).toBe('weapons');
+    expect(addItem(p, f, 'arrows', 20).result).toBe('ok'); // ammunition is not a weapon
   });
 });
 
@@ -112,9 +132,14 @@ describe('buying and selling', () => {
     expect(equippedItem(f, 'weapon')?.id).toBe('sword');
   });
 
-  it('refuses without enough gold or when the class cannot use it', () => {
+  it('refuses without enough gold, when the class cannot use it, or a third weapon', () => {
     const p = party('wizard');
     expect(buy(p, p.members[0], entry('sword'))).toBe('cant_use');
+    expect(buy(p, p.members[0], entry('dagger'))).toBe('bought');
+    expect(buy(p, p.members[0], entry('sling'))).toBe('bought');
+    const gold = p.gold;
+    expect(buy(p, p.members[0], entry('staff'))).toBe('weapons');
+    expect(p.gold).toBe(gold);
     p.gold = 5;
     expect(buy(p, p.members[0], entry('dagger'))).toBe('no_gold');
     expect(p.gold).toBe(5);
@@ -124,7 +149,10 @@ describe('buying and selling', () => {
     const p = party('wizard');
     const e = entry('rations');
     expect(buy(p, p.members[0], e)).toBe('bought');
-    expect(p.food).toBe(20 + 10 * e.bundle);
+    // 10 rations for 20 gold, as in the manual's sample quest (p.14).
+    expect(e.bundle).toBe(10);
+    expect(buyPrice(e)).toBe(20);
+    expect(p.food).toBe(20 + e.bundle);
     expect(p.gold).toBe(500 - buyPrice(e));
     expect(p.members[0].inventory).toHaveLength(0);
   });
