@@ -214,22 +214,31 @@ export function isWiped(party: Party): boolean {
   return living(party).length === 0;
 }
 
-/** Applies damage; a character at 0 HP is dead. Returns damage actually taken. */
+/**
+ * Applies damage. A character whose wounds reach their hit points is
+ * disabled, not dead (manual p.29): they travel with the party, can't act,
+ * and recover through healing. Returns the damage actually taken.
+ */
 export function hurt(c: Character, amount: number): number {
   if (c.hp.current <= 0) return 0;
   const before = c.hp.current;
   c.hp.current = Math.max(0, c.hp.current - amount);
-  if (c.hp.current === 0 && !c.status.includes('dead')) c.status.push('dead');
+  if (c.hp.current === 0 && !c.status.includes('disabled')) c.status.push('disabled');
   return before - c.hp.current;
 }
 
-/** Restores HP (never past max) and cures poison. Does nothing for the dead. */
+/** Restores HP (never past max) and cures poison; healing a disabled character brings them back. */
 export function heal(c: Character, amount: number): number {
-  if (c.hp.current <= 0) return 0;
+  if (amount <= 0) return 0;
   c.status = c.status.filter((s) => s !== 'poisoned');
   const before = c.hp.current;
   c.hp.current = Math.min(c.hp.max, c.hp.current + amount);
+  if (c.hp.current > 0) c.status = c.status.filter((s) => s !== 'disabled' && s !== 'dead');
   return c.hp.current - before;
+}
+
+export function isDisabled(c: Character): boolean {
+  return c.hp.current <= 0;
 }
 
 // ---- treasure -----------------------------------------------------------------
@@ -268,7 +277,8 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
   const r = rng.int(1, 100);
   if (r <= 35) {
     let total = 0;
-    for (const m of living(party)) total += heal(m, roll('1d8', rng));
+    // Disabled players can still drink (manual p.29).
+    for (const m of party.members) total += heal(m, roll('1d8', rng));
     return { effect: 'heal', message: total > 0 ? 'THE WATER HEALS YOUR WOUNDS' : 'THE WATER IS COOL AND CLEAR' };
   }
   if (r <= 50) {
@@ -280,7 +290,7 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
     return { effect: 'harm', message: 'THE WATER IS FOUL! IT BURNS' };
   }
   if (r <= 80) {
-    const all = living(party);
+    const all = party.members;
     const lucky = all[rng.int(0, all.length - 1)];
     const stat = STAT_KEYS[rng.int(0, STAT_KEYS.length - 1)];
     lucky.stats[stat] += 1;
@@ -294,11 +304,13 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
 /** Base chance to notice a trap before stepping on it, best in party. [CALIBRATE] */
 export const TRAP_SPOT_BASE = 10;
 const TRAP_SENSE_BONUS = 15;
+/** Extra chance for rogues and heroes, who avoid traps (manual p.20). [CALIBRATE] */
+export const TRAP_AVOIDANCE_BONUS = 25;
 
 export function trapSpotChance(party: Party): number {
   let best = 0;
   for (const m of living(party)) {
-    let c = TRAP_SPOT_BASE + Math.floor(getClass(m.classId).searchBonus / 2);
+    let c = TRAP_SPOT_BASE + (getClass(m.classId).trapAvoidance ? TRAP_AVOIDANCE_BONUS : 0);
     if (m.raceId && getRace(m.raceId).perks.includes('trap_sense')) c += TRAP_SENSE_BONUS;
     best = Math.max(best, c);
   }
@@ -326,6 +338,7 @@ export function stepOnTrap(party: Party, t: Trap, depth: number, rng: Rng): stri
     return 'POISON GAS FILLS THE ROOM!';
   }
   const all = living(party);
+  if (all.length === 0) return 'A TRAP SPRINGS!';
   const victim = all[rng.int(0, all.length - 1)];
   const n = hurt(victim, dmg());
   return t.kind === 'pit' ? `${victim.name} FALLS IN A PIT (-${n})` : `A DART HITS ${victim.name} (-${n})`;
