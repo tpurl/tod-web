@@ -110,8 +110,12 @@ export class Canvas8 {
   }
 }
 
-/** Shrinks a quad toward its middle, for door panels inside walls. */
-function inset(pts: readonly Pt[], fx: number, top: number): Pt[] {
+/**
+ * A door panel inside a wall quad: `fx` trims each side (fraction of the
+ * width), and the panel rises from the floor line to `height` (fraction of
+ * the wall's height at that point).
+ */
+function inset(pts: readonly Pt[], fx: number, height: number): Pt[] {
   // pts: near-top, far-top, far-bottom, near-bottom (or a rect in that order)
   const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   const [nt, ft, fb, nb] = pts;
@@ -119,7 +123,7 @@ function inset(pts: readonly Pt[], fx: number, top: number): Pt[] {
   const b = lerp(nt, ft, 1 - fx);
   const c = lerp(nb, fb, 1 - fx);
   const d = lerp(nb, fb, fx);
-  return [lerp(d, a, 1 - top), lerp(c, b, 1 - top), c, d];
+  return [lerp(d, a, height), lerp(c, b, height), c, d];
 }
 
 function drawPanel(cv: Canvas8, pts: readonly Pt[], fill: number, door: boolean): void {
