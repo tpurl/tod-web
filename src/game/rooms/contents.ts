@@ -6,6 +6,7 @@ import { addItem } from '../items/inventory.ts';
 import { ITEMS, getItem, type ItemDef } from '../items/items.ts';
 import { getMonster, monstersForDepth } from '../monsters/monsters.ts';
 import type { QuestSpec } from '../scenario/scenarios.ts';
+import { getDifficulty, hpScaleAt, type Difficulty } from '../scenario/difficulty.ts';
 import type { Character } from '../party/character.ts';
 import type { Party } from '../party/party.ts';
 import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
@@ -19,7 +20,8 @@ import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
  * Every probability and amount is a placeholder until calibrated against
  * the original. [CALIBRATE]
  */
-export const CHANCE = { monsters: 0.45, treasure: 0.45, guardedTreasure: 0.7, fountain: 0.15, trap: 0.18 } as const;
+/** Monster chance and strength come from the difficulty level (data/difficulties.json). */
+export const CHANCE = { treasure: 0.45, guardedTreasure: 0.7, fountain: 0.15, trap: 0.18 } as const;
 export const MAX_GROUP = 6;
 
 export interface MonsterInstance {
@@ -104,7 +106,12 @@ export function treasureItem(rng: Rng, depth: number, items: readonly ItemDef[] 
   return null;
 }
 
-export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = null): RoomContents[] {
+export function populateFloor(
+  floor: Floor,
+  rng: Rng,
+  quest: QuestSpec | null = null,
+  difficulty: Difficulty = getDifficulty(null),
+): RoomContents[] {
   const upRoom = floor.rooms.find(
     (r) => floor.stairsUp.x >= r.x && floor.stairsUp.x < r.x + r.w && floor.stairsUp.y >= r.y && floor.stairsUp.y < r.y + r.h,
   );
@@ -115,14 +122,14 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
     if (room === upRoom) return c;
     const cells = freeCells(room, floor);
 
-    const hasMonsters = candidates.length > 0 && rng.next() < CHANCE.monsters;
+    const hasMonsters = candidates.length > 0 && rng.next() < difficulty.monsterChance;
     if (hasMonsters) {
       const def = candidates[rng.int(0, candidates.length - 1)];
-      const count = Math.max(1, Math.min(MAX_GROUP, roll(def.groupSize, rng), cells.length - 1));
+      const count = Math.max(1, Math.min(MAX_GROUP, roll(def.groupSize, rng) + difficulty.extraMonsters, cells.length - 1));
       for (let i = 0; i < count; i++) {
         const p = take(rng, cells);
         if (!p) break;
-        const hp = Math.max(1, roll(def.hp, rng));
+        const hp = Math.max(1, Math.round(roll(def.hp, rng) * hpScaleAt(difficulty, floor.depth)));
         c.monsters.push({ monsterId: def.id, hp, maxHp: hp, x: p.x, y: p.y });
       }
     }
@@ -145,7 +152,7 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
     }
     return c;
   });
-  if (quest && quest.floor === floor.depth) placeQuest(floor, contents, quest, upRoom, rng);
+  if (quest && quest.floor === floor.depth) placeQuest(floor, contents, quest, upRoom, rng, difficulty);
   return contents;
 }
 
@@ -154,7 +161,14 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
  * arrival stairs that can be reached without finding a secret door, clears
  * its other features, and sets a guardian group.
  */
-function placeQuest(floor: Floor, contents: RoomContents[], quest: QuestSpec, upRoom: Room | undefined, rng: Rng): void {
+function placeQuest(
+  floor: Floor,
+  contents: RoomContents[],
+  quest: QuestSpec,
+  upRoom: Room | undefined,
+  rng: Rng,
+  difficulty: Difficulty,
+): void {
   const up = floor.stairsUp;
   const open = reachable(floor, up);
   const byDistance = (rooms: Room[]) =>
@@ -172,7 +186,7 @@ function placeQuest(floor: Floor, contents: RoomContents[], quest: QuestSpec, up
   for (let i = 0; i < 2; i++) {
     const p = take(rng, cells);
     if (!p) break;
-    const hp = Math.max(1, roll(def.hp, rng));
+    const hp = Math.max(1, Math.round(roll(def.hp, rng) * hpScaleAt(difficulty, floor.depth)));
     monsters.push({ monsterId: def.id, hp, maxHp: hp, x: p.x, y: p.y });
   }
   contents[far.id] = {
@@ -214,22 +228,31 @@ export function isWiped(party: Party): boolean {
   return living(party).length === 0;
 }
 
-/** Applies damage; a character at 0 HP is dead. Returns damage actually taken. */
+/**
+ * Applies damage. A character whose wounds reach their hit points is
+ * disabled, not dead (manual p.29): they travel with the party, can't act,
+ * and recover through healing. Returns the damage actually taken.
+ */
 export function hurt(c: Character, amount: number): number {
   if (c.hp.current <= 0) return 0;
   const before = c.hp.current;
   c.hp.current = Math.max(0, c.hp.current - amount);
-  if (c.hp.current === 0 && !c.status.includes('dead')) c.status.push('dead');
+  if (c.hp.current === 0 && !c.status.includes('disabled')) c.status.push('disabled');
   return before - c.hp.current;
 }
 
-/** Restores HP (never past max) and cures poison. Does nothing for the dead. */
+/** Restores HP (never past max) and cures poison; healing a disabled character brings them back. */
 export function heal(c: Character, amount: number): number {
-  if (c.hp.current <= 0) return 0;
+  if (amount <= 0) return 0;
   c.status = c.status.filter((s) => s !== 'poisoned');
   const before = c.hp.current;
   c.hp.current = Math.min(c.hp.max, c.hp.current + amount);
+  if (c.hp.current > 0) c.status = c.status.filter((s) => s !== 'disabled' && s !== 'dead');
   return c.hp.current - before;
+}
+
+export function isDisabled(c: Character): boolean {
+  return c.hp.current <= 0;
 }
 
 // ---- treasure -----------------------------------------------------------------
@@ -268,7 +291,8 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
   const r = rng.int(1, 100);
   if (r <= 35) {
     let total = 0;
-    for (const m of living(party)) total += heal(m, roll('1d8', rng));
+    // Disabled players can still drink (manual p.29).
+    for (const m of party.members) total += heal(m, roll('1d8', rng));
     return { effect: 'heal', message: total > 0 ? 'THE WATER HEALS YOUR WOUNDS' : 'THE WATER IS COOL AND CLEAR' };
   }
   if (r <= 50) {
@@ -280,7 +304,7 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
     return { effect: 'harm', message: 'THE WATER IS FOUL! IT BURNS' };
   }
   if (r <= 80) {
-    const all = living(party);
+    const all = party.members;
     const lucky = all[rng.int(0, all.length - 1)];
     const stat = STAT_KEYS[rng.int(0, STAT_KEYS.length - 1)];
     lucky.stats[stat] += 1;
@@ -294,11 +318,13 @@ export function drinkFountain(party: Party, f: Fountain, rng: Rng): { effect: Fo
 /** Base chance to notice a trap before stepping on it, best in party. [CALIBRATE] */
 export const TRAP_SPOT_BASE = 10;
 const TRAP_SENSE_BONUS = 15;
+/** Extra chance for rogues and heroes, who avoid traps (manual p.20). [CALIBRATE] */
+export const TRAP_AVOIDANCE_BONUS = 25;
 
 export function trapSpotChance(party: Party): number {
   let best = 0;
   for (const m of living(party)) {
-    let c = TRAP_SPOT_BASE + Math.floor(getClass(m.classId).searchBonus / 2);
+    let c = TRAP_SPOT_BASE + (getClass(m.classId).trapAvoidance ? TRAP_AVOIDANCE_BONUS : 0);
     if (m.raceId && getRace(m.raceId).perks.includes('trap_sense')) c += TRAP_SENSE_BONUS;
     best = Math.max(best, c);
   }
@@ -326,6 +352,7 @@ export function stepOnTrap(party: Party, t: Trap, depth: number, rng: Rng): stri
     return 'POISON GAS FILLS THE ROOM!';
   }
   const all = living(party);
+  if (all.length === 0) return 'A TRAP SPRINGS!';
   const victim = all[rng.int(0, all.length - 1)];
   const n = hurt(victim, dmg());
   return t.kind === 'pit' ? `${victim.name} FALLS IN A PIT (-${n})` : `A DART HITS ${victim.name} (-${n})`;

@@ -3,6 +3,7 @@ import type { KeyPress } from '../../engine/input/keyboard.ts';
 import { maxRoll } from '../dice.ts';
 import {
   MAX_ITEMS,
+  MAX_WEAPONS,
   addItem,
   canUse,
   findInstance,
@@ -62,7 +63,7 @@ export function sellPrice(inst: ItemInstance, sellRate = STORE.sellRate): number
   return Math.floor(item.price * (inst.quantity ?? 1) * sellRate);
 }
 
-export type BuyResult = 'bought' | 'no_gold' | 'cant_use' | 'full';
+export type BuyResult = 'bought' | 'no_gold' | 'cant_use' | 'full' | 'weapons';
 
 /**
  * Buys one bundle for a character. Food goes straight into the party's
@@ -79,6 +80,7 @@ export function buy(party: Party, c: Character, entry: StockEntry): BuyResult {
   }
   if (!canUse(c, item)) return 'cant_use';
   const { result, instance } = addItem(party, c, item.id, entry.bundle);
+  if (result === 'weapons') return 'weapons';
   if (result === 'full' || !instance) return 'full';
   party.gold -= cost;
   const slot = slotFor(item);
@@ -201,6 +203,7 @@ export class StoreModel {
       no_gold: 'NOT ENOUGH GOLD',
       cant_use: `${c.name} CANNOT USE THAT`,
       full: `${c.name} CANNOT CARRY MORE (${MAX_ITEMS})`,
+      weapons: `${c.name} HAS ${MAX_WEAPONS} WEAPONS ALREADY`,
     }[result];
   }
 

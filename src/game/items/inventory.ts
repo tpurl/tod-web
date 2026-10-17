@@ -11,6 +11,8 @@ export type Slot = keyof Character['equipped'];
 
 /** Distinct item slots per character (stacks count once). [CALIBRATE] */
 export const MAX_ITEMS = 8;
+/** Weapons a character may carry (manual p.22). */
+export const MAX_WEAPONS = 2;
 
 export function slotFor(item: ItemDef): Slot | null {
   switch (item.kind) {
@@ -52,7 +54,7 @@ export function equippedItem(c: Character, slot: Slot): ItemDef | null {
   return inst ? getItem(inst.itemId) : null;
 }
 
-export type AddResult = 'ok' | 'full';
+export type AddResult = 'ok' | 'full' | 'weapons';
 
 /**
  * Adds units of an item to a character. Stackable items merge into an
@@ -68,6 +70,9 @@ export function addItem(party: Party, c: Character, itemId: string, quantity = 1
     }
   }
   if (c.inventory.length >= MAX_ITEMS) return { result: 'full' };
+  if (item.kind === 'weapon' && c.inventory.filter((i) => getItem(i.itemId).kind === 'weapon').length >= MAX_WEAPONS) {
+    return { result: 'weapons' };
+  }
   const instance: ItemInstance = { instanceId: `it${party.nextItemId++}`, itemId, identified: true };
   if (item.stackable) instance.quantity = quantity;
   c.inventory.push(instance);

@@ -7,6 +7,7 @@ import { COLS } from '../engine/render/tileScreen.ts';
 import { CombatModel } from '../game/combat/combat.ts';
 import { getView } from '../game/dungeon/dungeon.ts';
 import { applyLevelUps } from '../game/party/leveling.ts';
+import { getDifficulty } from '../game/scenario/difficulty.ts';
 import type { CombatStart } from '../game/dungeon/dungeonModel.ts';
 import { loadMapTiles, loadPartySprites } from '../ui/dungeonTiles.ts';
 import { ADVENTURER_SPRITE, loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
@@ -47,6 +48,7 @@ export class CombatState implements GameState {
       floor: v.floor,
       entry: start.entry,
       rng: ctx.rng,
+      difficulty: getDifficulty(dungeon.difficulty),
     });
   }
 

@@ -20,6 +20,8 @@ import { VictoryState } from './victoryState.ts';
 import { PartyReadyState } from './partyReadyState.ts';
 import { PartyStatusState } from './partyStatusState.ts';
 import { SaveLoadState } from './saveLoadState.ts';
+import { UseItemState } from './useItemState.ts';
+import { partyHasUsable } from '../game/items/useItem.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 
 /** The map occupies rows 1..20, columns 1..30: one floor square per tile. */
@@ -34,6 +36,8 @@ const FACING_NAME = { n: 'NORTH', e: 'EAST', s: 'SOUTH', w: 'WEST' } as const;
 export class DungeonState implements GameState {
   readonly model: DungeonModel;
   private readonly ctx: AppContext;
+  /** True when the party is coming down from the entrance (not resuming after a fight or menu). */
+  private readonly descending: boolean;
 
   /** resume: come back to where the party already is (after a fight) instead of entering at floor 1. */
   constructor(ctx: AppContext, opts: { resume?: boolean; message?: string } = {}) {
@@ -41,8 +45,9 @@ export class DungeonState implements GameState {
     if (!ctx.party) throw new Error('DungeonState needs a party');
     if (!ctx.dungeon) {
       const sc = ctx.scenario;
-      ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff), sc?.floors, sc ? questSpec(sc) : null);
+      ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff), sc?.floors, sc ? questSpec(sc) : null, ctx.difficulty);
     }
+    this.descending = !opts.resume;
     this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng, { enter: !opts.resume, scenario: ctx.scenario });
     if (opts.message) this.model.message = opts.message;
   }
@@ -57,6 +62,7 @@ export class DungeonState implements GameState {
     s.spriteSize = 8;
     s.spriteMagnify = false;
     this.ctx.sound.music(null);
+    if (this.descending) this.ctx.sound.play('stairs');
     this.draw();
   }
 
@@ -72,6 +78,11 @@ export class DungeonState implements GameState {
       this.ctx.machine.change(new PartyStatusState(this.ctx, () => new DungeonState(this.ctx, { resume: true })));
       return;
     }
+    if (press.key === 'char' && press.char === 'U' && this.model.mode === 'explore') {
+      const back = () => new DungeonState(this.ctx, { resume: true });
+      this.ctx.machine.change(new UseItemState(this.ctx, { back, view: this.model.view }));
+      return;
+    }
     if (press.key === 'char' && press.char === 'K' && this.model.mode === 'explore') {
       const back = () => new DungeonState(this.ctx, { resume: true });
       this.ctx.machine.change(new SaveLoadState(this.ctx, 'save', { back, place: 'dungeon' }));
@@ -81,6 +92,7 @@ export class DungeonState implements GameState {
     for (const id of this.model.sounds) this.ctx.sound.play(id);
     this.model.sounds = [];
     if (this.model.mode === 'exited') {
+      this.ctx.sound.play('stairs');
       this.ctx.machine.change(new PartyReadyState(this.ctx));
       return;
     }
@@ -164,6 +176,7 @@ export class DungeonState implements GameState {
             { label: 'SEARCH', key: 'char:S' },
             { label: 'PARTY', key: 'char:P' },
             { label: 'SAVE', key: 'char:K' },
+            ...(partyHasUsable(p) ? [{ label: 'USE', key: 'char:U' }] : []),
             ...(m.atFountain ? [{ label: 'DRINK', key: 'char:D' }] : []),
           ],
     );

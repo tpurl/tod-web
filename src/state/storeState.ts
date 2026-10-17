@@ -32,6 +32,7 @@ export class StoreState implements GameState {
   enter(): void {
     loadUiTiles(this.ctx.screen);
     this.ctx.screen.hideAllSprites();
+    this.ctx.sound.play('store_enter');
     this.draw();
   }
 

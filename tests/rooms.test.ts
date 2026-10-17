@@ -13,6 +13,7 @@ import {
   MAX_GROUP,
   aliveMonsters,
   drinkFountain,
+  heal,
   hurt,
   isWiped,
   stepOnTrap,
@@ -42,6 +43,20 @@ function placeBeside(m: DungeonModel, target: { x: number; y: number }): Dir | n
     }
   }
   return null;
+}
+
+/** A door square just outside a room that holds monsters, and the key that steps in. */
+function findRoomWithMonsters() {
+  for (let seed = 0; seed < 300; seed++) {
+    const dungeon = createDungeon(seed);
+    const v = getView(dungeon, 1);
+    for (const door of v.floor.doors) {
+      if (door.kind !== 'normal' || v.contents[door.roomId].monsters.length === 0) continue;
+      const key = ({ n: 'up', e: 'right', s: 'down', w: 'left' } as const)[door.side];
+      return { dungeon, outside: { x: door.x, y: door.y }, key };
+    }
+  }
+  throw new Error('no monster room');
 }
 
 describe('monster data', () => {
@@ -172,13 +187,37 @@ describe('treasure, traps, fountains', () => {
     expect(r.message.length).toBeGreaterThan(0);
   });
 
-  it('death and wipe-out', () => {
+  it('players are disabled, not killed, and healing brings them back (manual p.29)', () => {
     const p = party('fighter', 'wizard');
     hurt(p.members[0], 999);
-    expect(p.members[0].status).toContain('dead');
+    expect(p.members[0].status).toContain('disabled');
     expect(isWiped(p)).toBe(false);
     hurt(p.members[1], 999);
     expect(isWiped(p)).toBe(true);
+    expect(heal(p.members[0], 3)).toBe(3);
+    expect(p.members[0].status).not.toContain('disabled');
+    expect(isWiped(p)).toBe(false);
+  });
+
+  it('traps and fountains cope with a fully disabled party', () => {
+    const p = party('fighter');
+    hurt(p.members[0], 999);
+    for (let s = 0; s < 30; s++) {
+      expect(() => stepOnTrap(p, { x: 0, y: 0, kind: 'dart', found: false, sprung: false }, 1, createRng(s))).not.toThrow();
+      expect(() => drinkFountain(p, { x: 0, y: 0, used: false }, createRng(s))).not.toThrow();
+    }
+  });
+
+  it('a fully disabled party can walk, but meeting monsters ends the game', () => {
+    const d = findRoomWithMonsters();
+    const p = party('fighter');
+    const m = new DungeonModel(d.dungeon, p, createRng(1));
+    m.view3d = false;
+    hurt(p.members[0], 999);
+    p.position = { ...d.outside };
+    m.onKey(K(d.key));
+    expect(m.mode).toBe('dead');
+    expect(m.message).toBe('MONSTERS FIND YOUR HELPLESS PARTY');
   });
 });
 

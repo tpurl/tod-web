@@ -39,6 +39,10 @@ import { CELL, OPPOSITE, STEP, cellAt, roomAt, samePoint, type Dir, type Point }
  *
  * Taking the up stairs on floor 1 asks before leaving; leaving with the
  * scenario's goal met wins the game (mode 'won').
+ *
+ * Players knocked out by traps or fountains are disabled, not dead, and a
+ * fully disabled party can still walk (and heal on rations). Meeting
+ * monsters in that state ends the game (manual p.29).
  */
 export type DungeonMode = 'explore' | 'confirmExit' | 'exited' | 'dead' | 'combat' | 'won';
 
@@ -126,6 +130,7 @@ export class DungeonModel {
         const c = contentsAt(this.view, target) as RoomContents;
         const room = roomAt(this.view.floor, target.x, target.y);
         if (!c.peaceful && room) {
+          if (this.helpless()) return;
           // Bumping a hostile monster starts the fight, even from a doorway it is blocking.
           this.mode = 'combat';
           this.combat = { roomId: room.id, entry: { ...this.party.position }, retreat: { ...this.party.position }, retreatFacing: OPPOSITE[dir] };
@@ -154,6 +159,7 @@ export class DungeonModel {
       if (roomNow && roomNow !== roomBefore) {
         const c = this.view.contents[roomNow.id];
         if (!c.peaceful && aliveMonsters(c).length > 0) {
+          if (this.helpless()) return;
           this.mode = 'combat';
           this.combat = { roomId: roomNow.id, entry: { ...this.party.position }, retreat: from, retreatFacing: OPPOSITE[dir] };
           return;
@@ -161,12 +167,10 @@ export class DungeonModel {
         this.message = this.entryMessage(c) || asideMsg;
       }
       this.resolveSquare();
+      const wasWiped = isWiped(this.party);
       const hunger = eatIfDue(this.party);
       if (hunger && !this.message.startsWith('FOUND')) this.message = hunger;
-      if (isWiped(this.party)) {
-        this.mode = 'dead';
-        return;
-      }
+      if (wasWiped && !isWiped(this.party)) this.message = 'YOUR PARTY STIRS AGAIN';
       if (!this.message) {
         if (this.onStairsDown) this.message = 'STAIRS DOWN. ENTER TO DESCEND';
         else if (this.onStairsUp) this.message = this.party.depth === 1 ? 'STAIRS UP. ENTER TO LEAVE' : 'STAIRS UP. ENTER TO CLIMB';
@@ -190,7 +194,7 @@ export class DungeonModel {
       else {
         this.message = drinkFountain(this.party, f, this.rng).message;
         this.sounds.push('fountain');
-        if (isWiped(this.party)) this.mode = 'dead';
+        if (isWiped(this.party)) this.message = 'ALL YOUR PLAYERS ARE DISABLED';
       }
     }
   }
@@ -204,6 +208,14 @@ export class DungeonModel {
   get atFountain(): boolean {
     const f = this.here?.fountain;
     return !!f && !f.used && samePoint(f, this.party.position);
+  }
+
+  /** A fully disabled party that meets monsters is destroyed (manual p.29). */
+  private helpless(): boolean {
+    if (!isWiped(this.party)) return false;
+    this.mode = 'dead';
+    this.message = 'MONSTERS FIND YOUR HELPLESS PARTY';
+    return true;
   }
 
   /** Moves a peaceful monster to the free room square farthest from the party. */
@@ -261,7 +273,7 @@ export class DungeonModel {
       const msg = stepOnTrap(this.party, trap, this.party.depth, this.rng);
       if (msg) this.message = msg;
       if (trap.sprung && !wasSprung) this.sounds.push('trap');
-      if (isWiped(this.party)) this.mode = 'dead';
+      if (isWiped(this.party)) this.message = 'ALL YOUR PLAYERS ARE DISABLED';
     }
     const f = c.fountain;
     if (f && samePoint(f, pos) && !this.message) this.message = f.used ? 'THE FOUNTAIN IS DRY' : 'A FOUNTAIN. D TO DRINK';

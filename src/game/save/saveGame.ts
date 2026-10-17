@@ -4,6 +4,7 @@ import type { Floor } from '../dungeon/floor.ts';
 import type { Party } from '../party/party.ts';
 import type { RoomContents } from '../rooms/contents.ts';
 import { SCENARIOS, type QuestSpec, type ScenarioDef } from '../scenario/scenarios.ts';
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, type DifficultyId } from '../scenario/difficulty.ts';
 
 /**
  * Save games (DESIGN.md section 14). A save holds the party, the random
@@ -32,6 +33,8 @@ export interface SaveData {
   savedAt: string;
   place: SavePlace;
   scenarioId: string | null;
+  /** Missing in saves made before difficulty levels; those load as medium. */
+  difficulty?: DifficultyId;
   rngState: number;
   party: Party;
   dungeon: {
@@ -44,6 +47,7 @@ export interface SaveData {
 }
 
 export interface Restored {
+  difficulty: DifficultyId;
   party: Party;
   dungeon: Dungeon | null;
   scenario: ScenarioDef | null;
@@ -74,6 +78,7 @@ export function makeSave(opts: {
   scenario: ScenarioDef | null;
   rng: Rng;
   place: SavePlace;
+  difficulty?: DifficultyId;
   now?: Date;
 }): SaveData {
   const d = opts.dungeon;
@@ -82,6 +87,7 @@ export function makeSave(opts: {
     savedAt: (opts.now ?? new Date()).toISOString(),
     place: opts.place,
     scenarioId: opts.scenario?.id ?? null,
+    difficulty: opts.dungeon?.difficulty ?? opts.difficulty ?? DEFAULT_DIFFICULTY,
     rngState: opts.rng.state,
     party: clone(opts.party),
     dungeon: d
@@ -121,11 +127,13 @@ export function restoreSave(raw: unknown): Restored {
   const scenario = s.scenarioId ? (SCENARIOS.find((x) => x.id === s.scenarioId) ?? null) : null;
   if (s.scenarioId) check(scenario, 'scenario');
 
+  const difficulty = s.difficulty ?? DEFAULT_DIFFICULTY;
+  check(DIFFICULTIES.some((d) => d.id === difficulty), 'difficulty');
   let dungeon: Dungeon | null = null;
   if (s.dungeon) {
     const sd = s.dungeon;
     check(Number.isInteger(sd.seed) && Number.isInteger(sd.floorCount), 'dungeon');
-    dungeon = createDungeon(sd.seed, sd.floorCount, sd.quest ? clone(sd.quest) : null);
+    dungeon = createDungeon(sd.seed, sd.floorCount, sd.quest ? clone(sd.quest) : null, difficulty);
     dungeon.view3d = sd.view3d !== false;
     for (const f of sd.floors) {
       check(Number.isInteger(f.depth) && f.depth >= 1 && f.depth <= sd.floorCount, 'floor depth');
@@ -141,7 +149,7 @@ export function restoreSave(raw: unknown): Restored {
   } else {
     check(s.place === 'entrance', 'dungeon missing');
   }
-  return { party: clone(p), dungeon, scenario, rng: createRng(s.rngState), place: s.place };
+  return { party: clone(p), dungeon, scenario, difficulty, rng: createRng(s.rngState), place: s.place };
 }
 
 /** One line per slot for the save and load screens. */
