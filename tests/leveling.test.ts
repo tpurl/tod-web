@@ -90,7 +90,15 @@ describe('leveling up', () => {
 describe('screens', () => {
   function app(): AppContext {
     const party = createParty([pc('fighter', 'GROG'), pc('wizard', 'ADA')], { racesEnabled: false });
-    return { machine: new StateMachine(), screen: new TileScreen(), rng: createRng(1), party, dungeon: createDungeon(4), actions: new RecordingActions() };
+    return {
+      machine: new StateMachine(),
+      screen: new TileScreen(),
+      rng: createRng(1),
+      party,
+      dungeon: createDungeon(4),
+      actions: new RecordingActions(),
+      scenario: null,
+    };
   }
 
   it('the party sheet pages through members and returns', () => {
