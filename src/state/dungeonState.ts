@@ -41,7 +41,7 @@ export class DungeonState implements GameState {
     if (!ctx.party) throw new Error('DungeonState needs a party');
     if (!ctx.dungeon) {
       const sc = ctx.scenario;
-      ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff), sc?.floors, sc ? questSpec(sc) : null);
+      ctx.dungeon = createDungeon(ctx.rng.int(0, 0x7fffffff), sc?.floors, sc ? questSpec(sc) : null, ctx.difficulty);
     }
     this.model = new DungeonModel(ctx.dungeon, ctx.party, ctx.rng, { enter: !opts.resume, scenario: ctx.scenario });
     if (opts.message) this.model.message = opts.message;
