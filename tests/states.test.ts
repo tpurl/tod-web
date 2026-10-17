@@ -34,7 +34,7 @@ function rowText(s: TileScreen, row: number): string {
 }
 
 describe('states', () => {
-  it('title blinks its prompt; Enter chooses a scenario, then party creation; T opens the test screen', () => {
+  it('title blinks its prompt; Enter chooses a scenario and level, then party creation; T opens the test screen', () => {
     const ctx = app();
     ctx.machine.change(new TitleState(ctx));
     expect(rowText(ctx.screen, 16)).toContain('PRESS ENTER');
@@ -43,7 +43,8 @@ describe('states', () => {
     ctx.machine.onKey({ key: 'enter', repeat: false });
     expect(ctx.machine.state).toBeInstanceOf(ScenarioSelectState);
     ctx.machine.onKey({ key: 'down', repeat: false });
-    ctx.machine.onKey({ key: 'enter', repeat: false });
+    ctx.machine.onKey({ key: 'enter', repeat: false }); // adventure
+    ctx.machine.onKey({ key: 'enter', repeat: false }); // difficulty
     expect(ctx.machine.state).toBeInstanceOf(PartyCreationState);
     expect(ctx.scenario?.id).toBe('lost_king');
     ctx.machine.change(new TitleState(ctx));
