@@ -1,6 +1,7 @@
 import { createRng, type Rng } from '../../engine/rng.ts';
 import { populateFloor, type RoomContents } from '../rooms/contents.ts';
 import type { QuestSpec } from '../scenario/scenarios.ts';
+import { DEFAULT_DIFFICULTY, getDifficulty, type DifficultyId } from '../scenario/difficulty.ts';
 import type { Party } from '../party/party.ts';
 import { getClass, getRace } from '../party/rules.ts';
 import { CELL, DIRS, STEP, cellAt, doorIndexAt, isPassable, roomAt, type Dir, type Floor, type Point } from './floor.ts';
@@ -31,10 +32,17 @@ export interface Dungeon {
   view3d: boolean;
   /** Where the scenario's captive and quest item are, if it has them. */
   quest: QuestSpec | null;
+  /** How many and how mean the monsters are (manual p.20). */
+  difficulty: DifficultyId;
 }
 
-export function createDungeon(seed: number, floorCount = DEFAULT_FLOORS, quest: QuestSpec | null = null): Dungeon {
-  return { seed: seed >>> 0, floorCount, views: new Map(), view3d: true, quest };
+export function createDungeon(
+  seed: number,
+  floorCount = DEFAULT_FLOORS,
+  quest: QuestSpec | null = null,
+  difficulty: DifficultyId = DEFAULT_DIFFICULTY,
+): Dungeon {
+  return { seed: seed >>> 0, floorCount, views: new Map(), view3d: true, quest, difficulty };
 }
 
 export function floorSeed(d: Dungeon, depth: number): number {
@@ -45,7 +53,7 @@ export function getView(d: Dungeon, depth: number): FloorView {
   let v = d.views.get(depth);
   if (!v) {
     const floor = generateFloor(floorSeed(d, depth), depth, { hasDown: depth < d.floorCount });
-    const contents = populateFloor(floor, createRng((floorSeed(d, depth) ^ 0x5eed) >>> 0), d.quest);
+    const contents = populateFloor(floor, createRng((floorSeed(d, depth) ^ 0x5eed) >>> 0), d.quest, getDifficulty(d.difficulty));
     v = { floor, explored: new Uint8Array(floor.width * floor.height), found: new Set(), contents };
     d.views.set(depth, v);
   }
