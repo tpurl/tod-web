@@ -5,6 +5,7 @@ import { bigTextWidth, drawBigText } from '../ui/bigText.ts';
 import { CODE, loadUiTiles } from '../ui/tiles.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 import { ScenarioSelectState } from './scenarioSelectState.ts';
+import { SaveLoadState } from './saveLoadState.ts';
 import { TestState } from './testState.ts';
 
 export const BLINK_MS = 500;
@@ -42,8 +43,8 @@ export class TitleState implements GameState {
     const title = 'TOD';
     drawBigText(s, Math.floor((COLS - bigTextWidth(title)) / 2), 3, title, CODE.solid);
     s.printCentered(12, 'A DUNGEON ADVENTURE');
-    s.printCentered(18, 'T:DISPLAY TEST  S:SOUND');
-    s.printCentered(20, 'WORKING TITLE  M10 BUILD');
+    s.printCentered(18, 'L:LOAD  T:TEST  S:SOUND');
+    s.printCentered(20, 'WORKING TITLE  M11 BUILD');
 
     this.ctx.sound.music('music_title');
     this.setActions();
@@ -55,6 +56,9 @@ export class TitleState implements GameState {
   onKey(press: KeyPress): void {
     if (press.key === 'enter') this.ctx.machine.change(new ScenarioSelectState(this.ctx));
     else if (press.key === 'char' && press.char === 'T') this.ctx.machine.change(new TestState(this.ctx));
+    else if (press.key === 'char' && press.char === 'L') {
+      this.ctx.machine.change(new SaveLoadState(this.ctx, 'load', { back: () => new TitleState(this.ctx) }));
+    }
     else if (press.key === 'char' && press.char === 'S') {
       this.ctx.sound.setMuted(!this.ctx.sound.muted);
       this.setActions();
@@ -63,6 +67,7 @@ export class TitleState implements GameState {
 
   private setActions(): void {
     this.ctx.actions.setActions([
+      { label: 'LOAD GAME', key: 'char:L' },
       { label: 'DISPLAY TEST', key: 'char:T' },
       { label: this.ctx.sound.muted ? 'SOUND: OFF' : 'SOUND: ON', key: 'char:S' },
     ]);

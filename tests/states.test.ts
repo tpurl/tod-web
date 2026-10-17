@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RecordingSound } from '../src/engine/audio/audio.ts';
 import { RecordingActions } from '../src/engine/input/actionBar.ts';
+import { MemorySaveStore } from '../src/engine/storage/saveStore.ts';
 import { TileScreen } from '../src/engine/render/tileScreen.ts';
 import { createRng } from '../src/engine/rng.ts';
 import { DungeonState } from '../src/state/dungeonState.ts';
@@ -22,6 +23,7 @@ function app(): AppContext {
     actions: new RecordingActions(),
     scenario: null,
     sound: new RecordingSound(),
+    saves: new MemorySaveStore(),
   };
 }
 
@@ -78,7 +80,7 @@ describe('states', () => {
     expect(ctx.machine.state).toBeInstanceOf(DungeonState);
     expect(ctx.party?.depth).toBe(1);
     expect(ctx.screen.overlay).not.toBeNull(); // starts in the 3D view
-    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH', 'PARTY']);
+    expect((ctx.actions as RecordingActions).current.map((a) => a.label)).toEqual(['MAP', 'SEARCH', 'PARTY', 'SAVE']);
     k('enter'); // standing on the up stairs: asks to leave
     k('enter');
     expect(ctx.machine.state).toBeInstanceOf(PartyReadyState);

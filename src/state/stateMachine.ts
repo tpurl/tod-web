@@ -1,5 +1,6 @@
 import type { SoundSink } from '../engine/audio/audio.ts';
 import type { ActionSink } from '../engine/input/actionBar.ts';
+import type { SaveStore } from '../engine/storage/saveStore.ts';
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import type { TileScreen } from '../engine/render/tileScreen.ts';
 import type { Rng } from '../engine/rng.ts';
@@ -55,4 +56,6 @@ export interface AppContext {
   scenario: ScenarioDef | null;
   /** Sound effects and music. */
   sound: SoundSink;
+  /** Save game slots. */
+  saves: SaveStore;
 }

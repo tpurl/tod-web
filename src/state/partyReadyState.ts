@@ -7,9 +7,10 @@ import { DungeonState } from './dungeonState.ts';
 import type { AppContext, GameState } from './stateMachine.ts';
 import { StoreState } from './storeState.ts';
 import { PartyStatusState } from './partyStatusState.ts';
+import { SaveLoadState } from './saveLoadState.ts';
 import { TitleState } from './titleState.ts';
 
-/** The dungeon entrance: go down, go back to the store, or quit to the title. */
+/** The dungeon entrance: go down, go back to the store, save, or quit to the title. */
 export class PartyReadyState implements GameState {
   private readonly ctx: AppContext;
 
@@ -23,9 +24,10 @@ export class PartyReadyState implements GameState {
     s.hideAllSprites();
     this.ctx.actions.setActions([
       { label: 'PARTY', key: 'char:P' },
+      { label: 'SAVE', key: 'char:K' },
       { label: 'QUIT TO TITLE', key: 'char:Q' },
     ]);
-    drawFrame(s, 'THE DUNGEON ENTRANCE', ['ENTER:GO DOWN   BACK:STORE', 'Q:QUIT TO TITLE']);
+    drawFrame(s, 'THE DUNGEON ENTRANCE', ['ENTER:GO DOWN   BACK:STORE', 'K:SAVE  Q:QUIT TO TITLE']);
     const party = this.ctx.party;
     if (!party) return;
     const who = party.members.length === 1 ? 'YOUR HERO STANDS READY.' : `YOUR PARTY OF ${party.members.length} STANDS READY.`;
@@ -52,6 +54,9 @@ export class PartyReadyState implements GameState {
     else if (press.key === 'back') this.ctx.machine.change(new StoreState(this.ctx));
     else if (press.key === 'char' && press.char === 'Q') this.ctx.machine.change(new TitleState(this.ctx));
     else if (press.key === 'char' && press.char === 'P') this.ctx.machine.change(new PartyStatusState(this.ctx, () => new PartyReadyState(this.ctx)));
+    else if (press.key === 'char' && press.char === 'K') {
+      this.ctx.machine.change(new SaveLoadState(this.ctx, 'save', { back: () => new PartyReadyState(this.ctx), place: 'entrance' }));
+    }
   }
 
   update(): void {}
