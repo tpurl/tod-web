@@ -37,7 +37,7 @@ Status values:
 | Rule | Manual | Remake | Status |
 |---|---|---|---|
 | Floors | Player chooses 1–10 (p.20) | Fixed per scenario (3 or 5) | Planned |
-| Difficulty | Easiest, medium, hardest: number and meanness of monsters, starting gold (p.20) | None | Planned (top priority; see Balance) |
+| Difficulty | Easiest, medium, hardest: number and meanness of monsters, starting gold (p.20) | Chosen after the adventure; sets monster numbers, hit points, attack, damage, growth per floor, and starting gold (`data/difficulties.json`) | Applied in M12; tuned by simulation (see Balance) |
 | Rooms per floor | 20 in Quest of the King (p.24) | 5–9 | Needs emulator for room sizes before changing the generator |
 | Time | Steps counted per hallway view; searching and listening cost a step; every 10 steps the quest countdown drops, rations are eaten, and players partly heal (p.19) | Food and healing every 10 steps | Applied (food, healing); countdown planned |
 | Healing on rations | Wounded and disabled players heal while rations last (p.19, p.29) | 1 HP per meal for everyone below max | Applied in M12; amount needs emulator |
@@ -57,6 +57,7 @@ Status values:
 | Player turn | One step, then one attack; attacking first uses the turn (p.27) | Same | Applied in M12 (was 3 steps) |
 | Experience | Goes to the player who lands the killing blow (p.28) | Same | Applied in M12 (was split) |
 | Disabled players | Wounds equal to hit points disables a player; disabled players travel with the party and heal; a fully disabled party dies only if it meets monsters (p.29) | Same | Applied in M12 (was permanent death) |
+| Monsters by depth | Stronger and more experienced deeper down (p.28) | Hit points and attack grow per floor, by difficulty level | Applied in M12; rates need emulator |
 | Hit-chance display | ++, +, 0, −, −− for the odds against each monster (p.27) | Not shown | Planned |
 | Speed and mobility | Monsters have speed (attacks = speed − 1) and a chance to move (p.32) | Monsters move up to `move` squares and attack once | Needs emulator for values |
 | Negotiation | N at any time; ends the round; success names a price, N again halves it; refusing ends talks for good and gives an extra move (p.29) | Talk only before the fight; one price | Planned |
@@ -98,21 +99,38 @@ same U command.
 
 ## Balance
 
-Simulated in M12 with fresh 4-person parties (2 fighters, a rogue, a wizard;
-store gear; party level equal to the floor) against every monster room in
-150 generated dungeons:
+`src/game/sim/balance.ts` simulates fights: a fresh, store-equipped party of
+four (two fighters, a rogue, a wizard) at a level equal to the floor fights
+every monster room on that floor, across many generated dungeons, playing a
+simple policy (close in and strike; the wizard casts Bolt while it can). A
+test (`tests/difficulty.test.ts`) keeps each level inside its band, so later
+changes to monsters or combat can't quietly break the balance.
 
-| Floor | Party level | Fights | Party wins | Avg. rounds | HP left |
-|---|---|---|---|---|---|
-| 1 | 1 | 304 | 98.4% | 2.6 | 87% |
-| 2 | 2 | 323 | 99.4% | 2.8 | 87% |
-| 3 | 3 | 331 | 99.7% | 2.3 | 92% |
-| 4 | 4 | 331 | 100.0% | 2.2 | 93% |
-| 5 | 5 | 286 | 100.0% | 2.0 | 95% |
+**Before difficulty levels** (M12, part 1), 150 dungeons:
 
-Single fights are too easy: the manual's sample quest describes its gremlin
-and metalloid fights as "almost even" on the *easiest* setting (p.17–18).
-The fix belongs with the planned difficulty setting, which the manual says
-controls monster numbers and meanness (p.20): tune *medium* so a fresh party
-at the floor's expected level ends a typical fight with about half its HP,
-then derive *easiest* and *hardest* from it.
+| Floor | Fights | Party wins | HP left |
+|---|---|---|---|
+| 1 | 304 | 98.4% | 87% |
+| 3 | 331 | 99.7% | 92% |
+| 5 | 286 | 100.0% | 95% |
+
+Far too easy, and easier the deeper the party went, because monsters didn't
+grow with depth. The manual says monsters get stronger deeper down (p.28)
+and calls its sample fights "almost even" on the easiest setting (p.17–18).
+
+**After** (M12, part 2), 60 dungeons per floor, averaged over floors 1–5:
+
+| Level | Party wins | HP left | Starting gold | Test band (wins) |
+|---|---|---|---|---|
+| Easiest | 94% | 77% | ×1.25 | 88–100% |
+| Medium | 85% | 59% | ×1 | 75–93% |
+| Hardest | 64% | 38% | ×0.75 | 50–78% |
+
+Each level holds steady from floor 1 to floor 5, because monster hit points
+and attack now grow per floor (`hpPerFloor`, `attackPerFloor`). These are
+single fights by a fresh party; real play strings fights together with only
+ration healing in between, so the run as a whole is harder than any one fight.
+
+Still to calibrate against the original: the real monster tables, the party
+level players actually reach on each floor, and whether the original scales
+monster strength by depth, by difficulty, or both.
