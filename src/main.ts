@@ -2,6 +2,7 @@ import { WebAudioSound } from './engine/audio/audio.ts';
 import { ActionBar } from './engine/input/actionBar.ts';
 import { Keyboard } from './engine/input/keyboard.ts';
 import { TouchControls, shouldShowTouch } from './engine/input/touchControls.ts';
+import { LocalSaveStore } from './engine/storage/saveStore.ts';
 import { Display } from './engine/render/display.ts';
 import { createRng, timeSeed } from './engine/rng.ts';
 import { TileScreen } from './engine/render/tileScreen.ts';
@@ -38,7 +39,17 @@ const actions = new ActionBar(actionsEl, (press) => keyboard.press(press));
 const sound = new WebAudioSound();
 // Chrome allows audio only after a user gesture: the first key, tap, or button.
 keyboard.onFirstInput(() => sound.unlock());
-const ctx: AppContext = { machine, screen, rng: createRng(timeSeed()), party: null, dungeon: null, actions, scenario: null, sound };
+const ctx: AppContext = {
+  machine,
+  screen,
+  rng: createRng(timeSeed()),
+  party: null,
+  dungeon: null,
+  actions,
+  scenario: null,
+  sound,
+  saves: new LocalSaveStore(),
+};
 
 machine.change(new TitleState(ctx));
 canvas.focus();
