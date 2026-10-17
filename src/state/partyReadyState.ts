@@ -1,5 +1,6 @@
 import type { KeyPress } from '../engine/input/keyboard.ts';
 import { equippedItem } from '../game/items/inventory.ts';
+import { goalProgress } from '../game/scenario/scenarios.ts';
 import { CONTENT_TOP, drawFrame } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { DungeonState } from './dungeonState.ts';
@@ -39,6 +40,11 @@ export class PartyReadyState implements GameState {
       s.print(3, row + 1, `${w ? w.name.toUpperCase() : 'BARE HANDS'}, ${a ? a.name.toUpperCase() : 'NO ARMOR'}`);
     });
     s.print(1, CONTENT_TOP + 11, `GOLD ${party.gold}    FOOD ${party.food}`);
+    const sc = this.ctx.scenario;
+    if (sc) {
+      printHi(s, 1, CONTENT_TOP + 13, sc.title);
+      goalProgress(sc, party).forEach((line, i) => s.print(1, CONTENT_TOP + 14 + i, line.slice(0, 31)));
+    }
   }
 
   onKey(press: KeyPress): void {
