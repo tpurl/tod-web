@@ -102,9 +102,9 @@ export class SaveLoadState implements GameState {
   }
 
   private save(slot: number): void {
-    const { party, dungeon, scenario, rng } = this.ctx;
+    const { party, dungeon, scenario, rng, difficulty } = this.ctx;
     if (!party) return;
-    const data = makeSave({ party, dungeon, scenario, rng, place: this.place });
+    const data = makeSave({ party, dungeon, scenario, rng, difficulty, place: this.place });
     this.message = this.ctx.saves.write(slot, data) ? `SAVED TO SLOT ${slot}` : 'COULD NOT SAVE: STORAGE FULL';
   }
 
@@ -115,6 +115,7 @@ export class SaveLoadState implements GameState {
       this.ctx.party = r.party;
       this.ctx.dungeon = r.dungeon;
       this.ctx.scenario = r.scenario;
+      this.ctx.difficulty = r.difficulty;
       this.ctx.rng = r.rng;
       this.ctx.machine.change(
         r.place === 'dungeon' && r.dungeon
