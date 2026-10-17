@@ -6,6 +6,7 @@ import { addItem } from '../items/inventory.ts';
 import { ITEMS, getItem, type ItemDef } from '../items/items.ts';
 import { getMonster, monstersForDepth } from '../monsters/monsters.ts';
 import type { QuestSpec } from '../scenario/scenarios.ts';
+import { getDifficulty, hpScaleAt, type Difficulty } from '../scenario/difficulty.ts';
 import type { Character } from '../party/character.ts';
 import type { Party } from '../party/party.ts';
 import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
@@ -19,7 +20,8 @@ import { STAT_KEYS, getClass, getRace } from '../party/rules.ts';
  * Every probability and amount is a placeholder until calibrated against
  * the original. [CALIBRATE]
  */
-export const CHANCE = { monsters: 0.45, treasure: 0.45, guardedTreasure: 0.7, fountain: 0.15, trap: 0.18 } as const;
+/** Monster chance and strength come from the difficulty level (data/difficulties.json). */
+export const CHANCE = { treasure: 0.45, guardedTreasure: 0.7, fountain: 0.15, trap: 0.18 } as const;
 export const MAX_GROUP = 6;
 
 export interface MonsterInstance {
@@ -104,7 +106,12 @@ export function treasureItem(rng: Rng, depth: number, items: readonly ItemDef[] 
   return null;
 }
 
-export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = null): RoomContents[] {
+export function populateFloor(
+  floor: Floor,
+  rng: Rng,
+  quest: QuestSpec | null = null,
+  difficulty: Difficulty = getDifficulty(null),
+): RoomContents[] {
   const upRoom = floor.rooms.find(
     (r) => floor.stairsUp.x >= r.x && floor.stairsUp.x < r.x + r.w && floor.stairsUp.y >= r.y && floor.stairsUp.y < r.y + r.h,
   );
@@ -115,14 +122,14 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
     if (room === upRoom) return c;
     const cells = freeCells(room, floor);
 
-    const hasMonsters = candidates.length > 0 && rng.next() < CHANCE.monsters;
+    const hasMonsters = candidates.length > 0 && rng.next() < difficulty.monsterChance;
     if (hasMonsters) {
       const def = candidates[rng.int(0, candidates.length - 1)];
-      const count = Math.max(1, Math.min(MAX_GROUP, roll(def.groupSize, rng), cells.length - 1));
+      const count = Math.max(1, Math.min(MAX_GROUP, roll(def.groupSize, rng) + difficulty.extraMonsters, cells.length - 1));
       for (let i = 0; i < count; i++) {
         const p = take(rng, cells);
         if (!p) break;
-        const hp = Math.max(1, roll(def.hp, rng));
+        const hp = Math.max(1, Math.round(roll(def.hp, rng) * hpScaleAt(difficulty, floor.depth)));
         c.monsters.push({ monsterId: def.id, hp, maxHp: hp, x: p.x, y: p.y });
       }
     }
@@ -145,7 +152,7 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
     }
     return c;
   });
-  if (quest && quest.floor === floor.depth) placeQuest(floor, contents, quest, upRoom, rng);
+  if (quest && quest.floor === floor.depth) placeQuest(floor, contents, quest, upRoom, rng, difficulty);
   return contents;
 }
 
@@ -154,7 +161,14 @@ export function populateFloor(floor: Floor, rng: Rng, quest: QuestSpec | null = 
  * arrival stairs that can be reached without finding a secret door, clears
  * its other features, and sets a guardian group.
  */
-function placeQuest(floor: Floor, contents: RoomContents[], quest: QuestSpec, upRoom: Room | undefined, rng: Rng): void {
+function placeQuest(
+  floor: Floor,
+  contents: RoomContents[],
+  quest: QuestSpec,
+  upRoom: Room | undefined,
+  rng: Rng,
+  difficulty: Difficulty,
+): void {
   const up = floor.stairsUp;
   const open = reachable(floor, up);
   const byDistance = (rooms: Room[]) =>
@@ -172,7 +186,7 @@ function placeQuest(floor: Floor, contents: RoomContents[], quest: QuestSpec, up
   for (let i = 0; i < 2; i++) {
     const p = take(rng, cells);
     if (!p) break;
-    const hp = Math.max(1, roll(def.hp, rng));
+    const hp = Math.max(1, Math.round(roll(def.hp, rng) * hpScaleAt(difficulty, floor.depth)));
     monsters.push({ monsterId: def.id, hp, maxHp: hp, x: p.x, y: p.y });
   }
   contents[far.id] = {
