@@ -10,9 +10,11 @@ import type { AppContext, GameState } from './stateMachine.ts';
 import { StoreState } from './storeState.ts';
 import { PartyStatusState } from './partyStatusState.ts';
 import { SaveLoadState } from './saveLoadState.ts';
+import { UseItemState } from './useItemState.ts';
+import { partyHasUsable } from '../game/items/useItem.ts';
 import { TitleState } from './titleState.ts';
 
-/** The dungeon entrance: go down, go back to the store, save, or quit to the title. */
+/** The dungeon entrance: go down, go back to the store, use items, save, or quit to the title. */
 export class PartyReadyState implements GameState {
   private readonly ctx: AppContext;
 
@@ -24,12 +26,14 @@ export class PartyReadyState implements GameState {
     const s = this.ctx.screen;
     loadUiTiles(s);
     s.hideAllSprites();
+    const party0 = this.ctx.party;
     this.ctx.actions.setActions([
       { label: 'PARTY', key: 'char:P' },
+      ...(party0 && partyHasUsable(party0) ? [{ label: 'USE', key: 'char:U' }] : []),
       { label: 'SAVE', key: 'char:K' },
       { label: 'QUIT TO TITLE', key: 'char:Q' },
     ]);
-    drawFrame(s, 'THE DUNGEON ENTRANCE', ['ENTER:GO DOWN   BACK:STORE', 'K:SAVE  Q:QUIT TO TITLE']);
+    drawFrame(s, 'THE DUNGEON ENTRANCE', ['ENTER:GO DOWN   BACK:STORE', 'K:SAVE  U:USE  Q:QUIT TO TITLE']);
     const party = this.ctx.party;
     if (!party) return;
     const who = party.members.length === 1 ? 'YOUR HERO STANDS READY.' : `YOUR PARTY OF ${party.members.length} STANDS READY.`;
@@ -58,7 +62,9 @@ export class PartyReadyState implements GameState {
     else if (press.key === 'back') this.ctx.machine.change(new StoreState(this.ctx));
     else if (press.key === 'char' && press.char === 'Q') this.ctx.machine.change(new TitleState(this.ctx));
     else if (press.key === 'char' && press.char === 'P') this.ctx.machine.change(new PartyStatusState(this.ctx, () => new PartyReadyState(this.ctx)));
-    else if (press.key === 'char' && press.char === 'K') {
+    else if (press.key === 'char' && press.char === 'U') {
+      this.ctx.machine.change(new UseItemState(this.ctx, { back: () => new PartyReadyState(this.ctx) }));
+    } else if (press.key === 'char' && press.char === 'K') {
       this.ctx.machine.change(new SaveLoadState(this.ctx, 'save', { back: () => new PartyReadyState(this.ctx), place: 'entrance' }));
     }
   }
