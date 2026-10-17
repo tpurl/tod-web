@@ -126,6 +126,7 @@ export const SOUNDS = {
   trap: [...burst(12, 0, true, 0, 14), off],
   level_up: [...tune(['C5:6 E5:6 G5:6 C6:18', 'R:6 C4:6 E4:6 G4:18'], [2, 6]), off],
   buy: [...tune(['A5:3 E6:6'], [4]), off],
+  store_enter: [...tune(['C5:4 E5:4 G5:4 E5:4 C6:12', 'R:8 C4:4 G4:4 C5:12'], [3, 7]), off],
   // Tunes: original melodies in the spirit of early-80s title music.
   music_title: tune(
     [
