@@ -10,6 +10,7 @@ import { applyLevelUps } from '../game/party/leveling.ts';
 import type { CombatStart } from '../game/dungeon/dungeonModel.ts';
 import { loadMapTiles, loadPartySprites } from '../ui/dungeonTiles.ts';
 import { ADVENTURER_SPRITE, loadMonsterSprites, monsterSpriteCode } from '../ui/monsterSprites.ts';
+import { wrap } from '../ui/layout.ts';
 import { loadUiTiles, printHi } from '../ui/tiles.ts';
 import { DungeonState, VIEW_TOP } from './dungeonState.ts';
 import { GameOverState } from './gameOverState.ts';
@@ -21,19 +22,7 @@ export const MONSTER_STEP_MS = 500;
 const BLINK_MS = 300;
 export const PC_COLORS = [COLOR.cyan, COLOR.lightYellow, COLOR.lightGreen, COLOR.lightRed] as const;
 
-/** Splits a message into lines of at most 32 characters at spaces. */
-export function wrap(text: string, width = COLS): string[] {
-  const out: string[] = [];
-  let line = '';
-  for (const word of text.split(' ')) {
-    if (line && line.length + 1 + word.length > width) {
-      out.push(line);
-      line = word;
-    } else line = line ? `${line} ${word}` : word;
-  }
-  if (line) out.push(line);
-  return out;
-}
+export { wrap };
 
 /** The combat screen: the room from above with every combatant. Rules live in CombatModel. */
 export class CombatState implements GameState {
