@@ -1,0 +1,44 @@
+{
+  "_note": "Difficulty levels (manual p.20: the setting controls the number and meanness of monsters and the gold the party starts with). Tuned with src/game/sim/balance.ts so a fresh, store-equipped party of four at the floor's level wins about 94% / 85% / 64% of single fights with 77% / 59% / 38% of its HP left; see docs/CALIBRATION.md. [CALIBRATE against the original]",
+  "difficulties": [
+    {
+      "id": "easiest",
+      "name": "EASIEST",
+      "blurb": "FEWER, WEAKER MONSTERS",
+      "monsterChance": 0.4,
+      "extraMonsters": 0,
+      "hpScale": 1.25,
+      "attackBonus": 1,
+      "damageBonus": 1,
+      "hpPerFloor": 0.25,
+      "attackPerFloor": 0.5,
+      "goldScale": 1.25
+    },
+    {
+      "id": "medium",
+      "name": "MEDIUM",
+      "blurb": "THE INTENDED CHALLENGE",
+      "monsterChance": 0.45,
+      "extraMonsters": 1,
+      "hpScale": 1.25,
+      "attackBonus": 1,
+      "damageBonus": 1,
+      "hpPerFloor": 0.25,
+      "attackPerFloor": 0.6,
+      "goldScale": 1.0
+    },
+    {
+      "id": "hardest",
+      "name": "HARDEST",
+      "blurb": "MORE, MEANER MONSTERS",
+      "monsterChance": 0.55,
+      "extraMonsters": 1,
+      "hpScale": 1.6,
+      "attackBonus": 3,
+      "damageBonus": 2,
+      "hpPerFloor": 0.3,
+      "attackPerFloor": 0.7,
+      "goldScale": 0.75
+    }
+  ]
+}
