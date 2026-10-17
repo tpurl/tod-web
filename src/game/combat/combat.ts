@@ -17,15 +17,16 @@ import { SPELLS, type SpellDef } from './spells.ts';
  *
  *   parley -> rounds of turns in initiative order -> victory / defeat / fled
  *
- * On a character's turn: arrows move one square (up to MOVES per turn);
- * moving into a monster attacks it and ends the turn. F fires a ranged
+ * On a character's turn (manual p.27): one step, then one attack; attacking
+ * first uses the whole turn. Moving into a monster attacks it. Experience
+ * goes to the player who lands the killing blow (p.28). F fires a ranged
  * weapon, C opens the spell list, U drinks a healing potion, R tries to flee,
  * Enter ends the turn. Monster turns run one at a time through advance(),
  * which the combat screen calls on a timer so the player can follow them.
  *
  * All formulas are placeholders until calibrated. [CALIBRATE]
  */
-export const MOVES_PER_TURN = 3;
+export const MOVES_PER_TURN = 1;
 export const FLEE_CHANCE = 55;
 /** Chance a poisonous hit poisons, and HP lost per turn while poisoned. [CALIBRATE] */
 export const POISON_CHANCE = 30;
@@ -64,7 +65,8 @@ export class CombatModel {
   /** Latest events, newest last; the screen shows the last one or two. */
   log: string[] = [];
   movesLeft = 0;
-  xpEach = 0;
+  /** Total XP earned in this fight (each kill's XP went to whoever landed it). */
+  xpWon = 0;
   goldWon = 0;
   /** Gold the monsters want, during a 'demand' phase. */
   demand = 0;
@@ -262,7 +264,7 @@ export class CombatModel {
       if (u.kind === 'pc') {
         if (u.c.status.includes('poisoned')) {
           hurt(u.c, POISON_DAMAGE);
-          this.say(u.c.hp.current === 0 ? `${u.c.name} SUCCUMBS TO POISON!` : `${u.c.name} SUFFERS FROM POISON`);
+          this.say(u.c.hp.current === 0 ? `${u.c.name} IS DISABLED BY POISON!` : `${u.c.name} SUFFERS FROM POISON`);
           if (u.c.hp.current === 0) {
             if (this.checkEnd()) return;
             continue;
@@ -302,13 +304,11 @@ export class CombatModel {
       xp += def.xp;
       if (def.gold) gold += Math.max(0, roll(def.gold, this.rng));
     }
-    const living = this.livingPcs;
-    this.xpEach = Math.floor(xp / Math.max(1, living.length));
-    for (const u of living) u.c.xp += this.xpEach;
+    this.xpWon = xp;
     this.goldWon = gold;
     this.party.gold += gold;
     this.phase = 'victory';
-    this.say(`VICTORY! ${this.xpEach} XP EACH, ${gold} GOLD`);
+    this.say(`VICTORY! ${gold} GOLD FOUND`);
   }
 
   // ---- party actions ---------------------------------------------------------
@@ -351,7 +351,8 @@ export class CombatModel {
     const dmg = Math.max(1, roll(damage, this.rng) + bonus);
     t.m.hp = Math.max(0, t.m.hp - dmg);
     this.sounds.push(t.m.hp === 0 ? 'monster_die' : 'hit');
-    this.say(t.m.hp === 0 ? `${pc.c.name} SLAYS THE ${name}!` : `${pc.c.name} ${verb} ${name} FOR ${dmg}`);
+    if (t.m.hp === 0) pc.c.xp += t.def.xp;
+    this.say(t.m.hp === 0 ? `${pc.c.name} SLAYS THE ${name}! +${t.def.xp} XP` : `${pc.c.name} ${verb} ${name} FOR ${dmg}`);
   }
 
   private nearestMonster(from: Point, range: number): MonsterUnit | undefined {
@@ -394,10 +395,11 @@ export class CombatModel {
     if (!sp || sp.current < spell.cost) return;
     this.sounds.push('cast');
     if (spell.target === 'ally') {
-      const hurtMost = this.livingPcs.sort((a, b) => a.c.hp.current / a.c.hp.max - b.c.hp.current / b.c.hp.max)[0];
+      // Includes disabled players, who are off the field but still with the party.
+      const hurtMost = [...this.party.members].sort((a, b) => a.hp.current / a.hp.max - b.hp.current / b.hp.max)[0];
       sp.current -= spell.cost;
-      const n = heal(hurtMost.c, roll(spell.amount, this.rng));
-      this.say(`${pc.c.name} HEALS ${hurtMost.c.name} (+${n})`);
+      const n = heal(hurtMost, roll(spell.amount, this.rng));
+      this.say(`${pc.c.name} HEALS ${hurtMost.name} (+${n})`);
     } else {
       const targets = spell.target === 'all_enemies' ? this.monsters : [this.nearestMonster(pc, spell.range)].filter(Boolean);
       if (targets.length === 0) {
@@ -408,7 +410,10 @@ export class CombatModel {
       let slain = 0;
       for (const t of targets as MonsterUnit[]) {
         t.m.hp = Math.max(0, t.m.hp - Math.max(1, roll(spell.amount, this.rng)));
-        if (t.m.hp === 0) slain++;
+        if (t.m.hp === 0) {
+          slain++;
+          pc.c.xp += t.def.xp;
+        }
       }
       if (slain) this.sounds.push('monster_die');
       this.say(`${spell.name.toUpperCase()}!${slain ? ` ${slain} SLAIN` : ''}`);
@@ -474,7 +479,7 @@ export class CombatModel {
     const n = hurt(t.c, Math.max(1, roll(damage, this.rng)));
     if (t.c.hp.current === 0) {
       this.sounds.push('hero_die');
-      return this.say(`${t.c.name} FALLS!`);
+      return this.say(`${t.c.name} IS DISABLED!`);
     }
     this.sounds.push('hit');
     let extra = '';
@@ -506,7 +511,7 @@ export class CombatModel {
 
   // ---- setup -----------------------------------------------------------------
 
-  /** Puts living characters on the entry square and the nearest free squares around it. */
+  /** Puts conscious characters on the entry square and the nearest free squares around it. */
   private placeParty(entry: Point): PcUnit[] {
     const taken = new Set(this.contents.monsters.filter((m) => m.hp > 0).map((m) => `${m.x},${m.y}`));
     const queue: Point[] = [entry];
