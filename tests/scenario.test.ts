@@ -9,7 +9,7 @@ import { createDungeon, getView } from '../src/game/dungeon/dungeon.ts';
 import { DungeonModel } from '../src/game/dungeon/dungeonModel.ts';
 import { STEP, reachable, roomAt, samePoint, type Dir } from '../src/game/dungeon/floor.ts';
 import { createCharacter } from '../src/game/party/character.ts';
-import { LOW_FOOD, STEPS_PER_FOOD, eatIfDue, stepsPerFood } from '../src/game/party/food.ts';
+import { HEAL_PER_MEAL, LOW_FOOD, STEPS_PER_FOOD, eatIfDue, stepsPerFood } from '../src/game/party/food.ts';
 import { createParty, type Party } from '../src/game/party/party.ts';
 import { aliveMonsters } from '../src/game/rooms/contents.ts';
 import {
@@ -106,13 +106,28 @@ describe('food', () => {
     expect(stepsPerFood(party(['halfling', 'halfling', 'halfling', 'halfling']))).toBe(Math.round(STEPS_PER_FOOD / 0.75));
   });
 
-  it('starving costs everyone HP', () => {
+  it('meals heal wounded and disabled players while rations last (manual p.19)', () => {
     const p = party([null, null]);
-    p.food = 0;
+    p.food = 3;
+    p.members[0].hp.current -= 2;
+    p.members[1].hp.current = 0;
+    p.members[1].status.push('disabled');
     p.stepsTaken = STEPS_PER_FOOD;
-    const hp = p.members.map((m) => m.hp.current);
-    expect(eatIfDue(p)).toBe('YOU ARE STARVING!');
-    expect(p.members.map((m) => m.hp.current)).toEqual(hp.map((h) => h - 1));
+    eatIfDue(p);
+    expect(p.food).toBe(2);
+    expect(p.members[0].hp.current).toBe(p.members[0].hp.max - 2 + HEAL_PER_MEAL);
+    expect(p.members[1].hp.current).toBe(HEAL_PER_MEAL);
+    expect(p.members[1].status).not.toContain('disabled');
+  });
+
+  it('without rations, wounds do not heal', () => {
+    const p = party();
+    p.food = 0;
+    p.members[0].hp.current -= 2;
+    p.stepsTaken = STEPS_PER_FOOD;
+    const hp = p.members[0].hp.current;
+    expect(eatIfDue(p)).toBe('NO RATIONS: WOUNDS WILL NOT HEAL');
+    expect(p.members[0].hp.current).toBe(hp);
   });
 });
 
