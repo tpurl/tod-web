@@ -1,3 +1,4 @@
+import type { SoundId } from '../../engine/audio/sounds.ts';
 import type { KeyPress } from '../../engine/input/keyboard.ts';
 import type { Rng } from '../../engine/rng.ts';
 import { roll } from '../dice.ts';
@@ -67,6 +68,8 @@ export class CombatModel {
   goldWon = 0;
   /** Gold the monsters want, during a 'demand' phase. */
   demand = 0;
+  /** Sounds since the screen last played them. */
+  sounds: SoundId[] = [];
 
   readonly party: Party;
   readonly contents: RoomContents;
@@ -341,9 +344,13 @@ export class CombatModel {
 
   private attackMonster(pc: PcUnit, t: MonsterUnit, skill: number, damage: string, bonus: number, verb: string): void {
     const name = t.def.name.toUpperCase();
-    if (this.rng.int(1, 100) > hitChance(skill, t.def.defense)) return this.say(`${pc.c.name} MISSES THE ${name}`);
+    if (this.rng.int(1, 100) > hitChance(skill, t.def.defense)) {
+      this.sounds.push('miss');
+      return this.say(`${pc.c.name} MISSES THE ${name}`);
+    }
     const dmg = Math.max(1, roll(damage, this.rng) + bonus);
     t.m.hp = Math.max(0, t.m.hp - dmg);
+    this.sounds.push(t.m.hp === 0 ? 'monster_die' : 'hit');
     this.say(t.m.hp === 0 ? `${pc.c.name} SLAYS THE ${name}!` : `${pc.c.name} ${verb} ${name} FOR ${dmg}`);
   }
 
@@ -365,6 +372,7 @@ export class CombatModel {
       if (ammo.quantity <= 0) pc.c.inventory.splice(pc.c.inventory.indexOf(ammo), 1);
     }
     const skill = pc.c.level + statBonus(pc.c.stats.dexterity) + w.hitBonus;
+    this.sounds.push('shoot');
     this.attackMonster(pc, target, skill, w.damage, 0, 'SHOOTS');
     this.endTurn();
   }
@@ -376,6 +384,7 @@ export class CombatModel {
     const n = heal(pc.c, roll(amount, this.rng));
     inst.quantity = (inst.quantity ?? 1) - 1;
     if (inst.quantity <= 0) pc.c.inventory.splice(pc.c.inventory.indexOf(inst), 1);
+    this.sounds.push('fountain');
     this.say(`${pc.c.name} DRINKS A POTION (+${n})`);
     this.endTurn();
   }
@@ -383,6 +392,7 @@ export class CombatModel {
   private cast(pc: PcUnit, spell: SpellDef): void {
     const sp = pc.c.spellPoints;
     if (!sp || sp.current < spell.cost) return;
+    this.sounds.push('cast');
     if (spell.target === 'ally') {
       const hurtMost = this.livingPcs.sort((a, b) => a.c.hp.current / a.c.hp.max - b.c.hp.current / b.c.hp.max)[0];
       sp.current -= spell.cost;
@@ -400,6 +410,7 @@ export class CombatModel {
         t.m.hp = Math.max(0, t.m.hp - Math.max(1, roll(spell.amount, this.rng)));
         if (t.m.hp === 0) slain++;
       }
+      if (slain) this.sounds.push('monster_die');
       this.say(`${spell.name.toUpperCase()}!${slain ? ` ${slain} SLAIN` : ''}`);
     }
     this.phase = 'pcTurn';
@@ -454,11 +465,18 @@ export class CombatModel {
 
   private monsterHit(u: MonsterUnit, t: PcUnit, damage: string, verb: string): void {
     const name = u.def.name.toUpperCase();
+    if (verb === 'SHOOTS') this.sounds.push('shoot');
+    else if (verb === 'BLASTS') this.sounds.push('cast');
     if (this.rng.int(1, 100) > hitChance(u.def.attack, this.pcDefense(t.c))) {
+      this.sounds.push('miss');
       return this.say(`THE ${name} MISSES ${t.c.name}`);
     }
     const n = hurt(t.c, Math.max(1, roll(damage, this.rng)));
-    if (t.c.hp.current === 0) return this.say(`${t.c.name} FALLS!`);
+    if (t.c.hp.current === 0) {
+      this.sounds.push('hero_die');
+      return this.say(`${t.c.name} FALLS!`);
+    }
+    this.sounds.push('hit');
     let extra = '';
     if (u.def.specials.includes('poison') && !t.c.status.includes('poisoned') && this.rng.int(1, 100) <= POISON_CHANCE) {
       t.c.status.push('poisoned');
