@@ -41,7 +41,8 @@ const MASTER_GAIN = 0.6;
  * Web Audio output. Chrome only allows audio after a user gesture, so the
  * context is created by unlock() on the first key or tap; anything asked
  * for before then is remembered (the current tune) or dropped (effects).
- * Sounds are rendered once through the chip model and cached as buffers.
+ * Sounds are rendered once through the chip model and cached as buffers,
+ * unless the player has supplied a recording to use instead (soundPack.ts).
  */
 export class WebAudioSound implements SoundSink {
   private ctx: AudioContext | null = null;
@@ -49,6 +50,8 @@ export class WebAudioSound implements SoundSink {
   private readonly cache = new Map<SoundId, AudioBuffer>();
   private musicSource: AudioBufferSourceNode | null = null;
   private wantedMusic: SoundId | null = null;
+  /** Player-supplied recordings, raw until the audio context can decode them. */
+  private overrides = new Map<SoundId, ArrayBuffer>();
   muted: boolean;
 
   constructor() {
@@ -73,7 +76,37 @@ export class WebAudioSound implements SoundSink {
       this.master.connect(this.ctx.destination);
     }
     void this.ctx.resume();
+    void this.decodeOverrides();
     if (this.wantedMusic && !this.musicSource) this.startMusic(this.wantedMusic);
+  }
+
+  /** Number of built-in sounds replaced by player-supplied recordings. */
+  get overrideCount(): number {
+    return this.overrides.size;
+  }
+
+  /**
+   * Replaces built-in sounds with recordings (see soundPack.ts). Sounds not
+   * in the map go back to the built-in chip versions.
+   */
+  setOverrides(recordings: Map<SoundId, ArrayBuffer>): void {
+    this.overrides = new Map(recordings);
+    this.cache.clear();
+    void this.decodeOverrides();
+  }
+
+  private async decodeOverrides(): Promise<void> {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    for (const [id, raw] of this.overrides) {
+      try {
+        // decodeAudioData detaches its input, so give it a copy.
+        const buf = await ctx.decodeAudioData(raw.slice(0));
+        if (this.overrides.get(id) === raw) this.cache.set(id, buf);
+      } catch {
+        // Not a playable file: keep the built-in sound.
+      }
+    }
   }
 
   play(id: SoundId): void {
@@ -108,9 +141,25 @@ export class WebAudioSound implements SoundSink {
     src.start();
   }
 
+  private renderBuiltIn(id: SoundId): AudioBuffer {
+    const ctx = this.ctx as AudioContext;
+    const samples = renderSound(SOUNDS[id], ctx.sampleRate);
+    const buf = ctx.createBuffer(1, Math.max(1, samples.length), ctx.sampleRate);
+    buf.getChannelData(0).set(samples);
+    return buf;
+  }
+
   private source(id: SoundId): AudioBufferSourceNode {
     const ctx = this.ctx as AudioContext;
     let buf = this.cache.get(id);
+    if (!buf && this.overrides.has(id)) {
+      // Still decoding: use the built-in sound this once, without caching it.
+      buf = this.renderBuiltIn(id);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.master as GainNode);
+      return src;
+    }
     if (!buf) {
       const samples = renderSound(SOUNDS[id], ctx.sampleRate);
       buf = ctx.createBuffer(1, Math.max(1, samples.length), ctx.sampleRate);
