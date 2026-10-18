@@ -1,4 +1,5 @@
 import { WebAudioSound } from './engine/audio/audio.ts';
+import { createSoundPackService } from './engine/audio/soundPackPicker.ts';
 import { ActionBar } from './engine/input/actionBar.ts';
 import { Keyboard } from './engine/input/keyboard.ts';
 import { TouchControls, shouldShowTouch } from './engine/input/touchControls.ts';
@@ -49,6 +50,7 @@ const ctx: AppContext = {
   scenario: null,
   sound,
   saves: new LocalSaveStore(),
+  soundPack: createSoundPackService(sound),
 };
 
 machine.change(new TitleState(ctx));

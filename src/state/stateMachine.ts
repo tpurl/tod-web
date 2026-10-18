@@ -1,4 +1,5 @@
 import type { SoundSink } from '../engine/audio/audio.ts';
+import type { SoundPackService } from '../engine/audio/soundPack.ts';
 import type { ActionSink } from '../engine/input/actionBar.ts';
 import type { SaveStore } from '../engine/storage/saveStore.ts';
 import type { KeyPress } from '../engine/input/keyboard.ts';
@@ -61,4 +62,6 @@ export interface AppContext {
   sound: SoundSink;
   /** Save game slots. */
   saves: SaveStore;
+  /** Player-supplied recordings that replace built-in sounds (browser only). */
+  soundPack?: SoundPackService;
 }
